@@ -1,19 +1,16 @@
-from pydantic import BaseModel
+from ocsf.objects.certificate import Certificate
+from ocsf.objects.fingerprint import Fingerprint
+from ocsf.objects.object import Object
+from ocsf.objects.san import San
+from ocsf.objects.tls_extension import TLSExtension
 
-from .fingerprint import Fingerprint
-from .certificate import DigitalCertificate
-from .tls_extension import TLSExtension
 
-class TLS(BaseModel):
-    """
-    The Transport Layer Security (TLS) object describes the negotiated TLS protocol
-    used for secure communications over an establish network connection.
-    """
+class TLS(Object):
+    # Required
+    version: str
 
-    version: str # The TLS protocol version.
-
-    # Recommended:
-    certificate: DigitalCertificate | None = None
+    # Recommended
+    certificate: Certificate | None = None
     certificate_chain: list[str] | None = None
     cipher: str | None = None
     client_ciphers: list[str] | None = None
@@ -21,11 +18,11 @@ class TLS(BaseModel):
     ja3s_hash: Fingerprint | None = None
     sni: str | None = None
 
-    # Optional:
+    # Optional
     alert: int | None = None
     extension_list: list[TLSExtension] | None = None
-    tls_extension_list: list[TLSExtension] | None = None
     handshake_dur: int | None = None
     key_length: int | None = None
-    sans: list[dict] | None = None
+    sans: list[San] | None = None
     server_ciphers: list[str] | None = None
+    tls_extension_list: list[TLSExtension] | None = None

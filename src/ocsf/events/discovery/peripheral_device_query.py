@@ -1,14 +1,10 @@
-from ocsf.events.discovery import DiscoveryResult
-
+from ocsf.events.discovery.discovery_result import DiscoveryResult
 from ocsf.objects.peripheral_device import PeripheralDevice
 
 
 class PeripheralDeviceQuery(DiscoveryResult):
-    """
-    Peripheral Device Query events report information about peripheral devices.
-    """
+    class_id: int = 5014
+    class_name: str = "Peripheral Device Query"
 
-    class_uid: int = 5014
-    class_name: str = 'Peripheral Device Query'
-
+    # Required
     peripheral_device: PeripheralDevice

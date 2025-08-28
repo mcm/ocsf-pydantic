@@ -1,1 +1,1 @@
-OCSF_VERSION = '1.2.0'
+OCSF_VERSION = "1.6.0"

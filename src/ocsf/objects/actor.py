@@ -1,37 +1,33 @@
-from .user import User
+from pydantic import model_validator
+
+from ocsf.objects.authorization import Authorization
+from ocsf.objects.idp import Idp
+from ocsf.objects.object import Object
+from ocsf.objects.process import Process
+from ocsf.objects.session import Session
+from ocsf.objects.user import User
 
 
-from .process import Process
+class Actor(Object):
+    # Recommended
+    process: Process | None = None
+    user: User | None = None
 
-from .authorization import AuthorizationResult
-from .idp import IdentityProvider
-
-from pydantic import BaseModel
-from .session import Session
-
-
-class Actor(BaseModel):
-    """
-    The Actor object contains details about the user, role, application, service, or
-    process that initiated or performed a specific activity.
-    """
-
-    # Recommended:
-    process: Process | None = None # The process that initiated the activity.
-    user: User | None = None # The user that initiated the activity or the user context from which the
-                             # activity was initiated.
-
-    # Optional:
-    app_name: str | None = None # The client application or service that initiated the activity. This
-                                # can be in conjunction with the `user` if present.  Note
-                                # that `app_name` is distinct from the `process`
-                                # if present.
-    app_uid: str | None = None # The unique identifier of the client application or service that
-                               # initiated the activity. This can be in conjunction with the
-                               # `user` if present. Note that `app_name` is
-                               # distinct from the `process.pid` or `process.uid`
-                               # if present.
-    authorizations: list[AuthorizationResult] | None = None
-    idp: IdentityProvider | None = None
+    # Optional
+    app_name: str | None = None
+    app_uid: str | None = None
+    authorizations: list[Authorization] | None = None
+    idp: Idp | None = None
     invoked_by: str | None = None
-    session: Session | None = None # The user session from which the activity was initiated.
+    session: Session | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(
+            getattr(self, field) is None
+            for field in ["process", "user", "invoked_by", "session", "app_name", "app_uid"]
+        ):
+            raise ValueError(
+                "At least one of `process`, `user`, `invoked_by`, `session`, `app_name`, `app_uid` must be provided"
+            )
+        return self

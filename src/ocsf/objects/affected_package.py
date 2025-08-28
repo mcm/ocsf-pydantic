@@ -1,16 +1,9 @@
-from .package import SoftwarePackage
+from ocsf.objects.package import Package
+from ocsf.objects.remediation import Remediation
 
-from .remediation import Remediation
 
-
-class AffectedSoftwarePackage(SoftwarePackage):
-    """
-    The Affected Package object describes details about a software package
-    identified as affected by a vulnerability/vulnerabilities.
-    """
-
-    # Optional:
+class AffectedPackage(Package):
+    # Optional
     fixed_in_version: str | None = None
-    package_manager: str | None = None
-    path: str | None = None # The installation path of the affected package.
+    path: str | None = None
     remediation: Remediation | None = None

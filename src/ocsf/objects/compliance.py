@@ -1,32 +1,58 @@
-from enum import Enum
-from pydantic import BaseModel
+from enum import Enum, property as enum_property
+from typing import Any
+
+from ocsf.objects.assessment import Assessment
+from ocsf.objects.check import Check
+from ocsf.objects.kb_article import KbArticle
+from ocsf.objects.key_value_object import KeyValueObject
+from ocsf.objects.object import Object
 
 
-class ComplianceStatusId(Enum):
-    """
-    The normalized status identifier of the compliance check.
-    """
-    Pass: int = 1 # The compliance check passed for all the evaluated resources.
-    Warning: int = 2 # The compliance check did not yield a result due to missing information.
-    Fail: int = 3 # The compliance check failed for at least one of the evaluated resources.
+class StatusId(Enum):
+    UNKNOWN = 0
+    PASS = 1
+    WARNING = 2
+    FAIL = 3
+    OTHER = 99
 
-class Compliance(BaseModel):
-    """
-    The Compliance object contains information about Industry and Regulatory
-    Framework standards, controls and requirements.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return StatusId[obj]
+        else:
+            return StatusId(obj)
 
-    standards: list[str]
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "PASS": "Pass",
+            "WARNING": "Warning",
+            "FAIL": "Fail",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    # Recommended:
+
+class Compliance(Object):
+    # Recommended
     control: str | None = None
-    status: str | None = None # The resultant status of the compliance check  normalized to the caption
-                              # of the `status_id` value. In the case of 'Other', it is
-                              # defined by the event source.
-    status_id: ComplianceStatusId | None = None # The normalized status identifier of the compliance
-                                                # check.
+    standards: list[str] | None = None
+    status: str | None = None
+    status_id: StatusId | None = None
 
-    # Optional:
+    # Optional
+    assessments: list[Assessment] | None = None
+    category: str | None = None
+    checks: list[Check] | None = None
+    compliance_references: list[KbArticle] | None = None
+    compliance_standards: list[KbArticle] | None = None
+    control_parameters: list[KeyValueObject] | None = None
+    desc: str | None = None
     requirements: list[str] | None = None
-    status_code: str | None = None # The resultant status code of the compliance check.
-    status_detail: str | None = None # The contextual description of the status, status_code values.
+    status_code: str | None = None
+    status_detail: str | None = None
+    status_details: list[str] | None = None

@@ -1,16 +1,13 @@
-from ._entity import Entity
+from ocsf.objects._entity import Entity
+
 
 class PeripheralDevice(Entity):
-    """
-    The peripheral device object describes the identity, vendor and model of a
-    peripheral device.
-    """
+    # Required
+    class_: str
+    name: str
 
-    class_: str # The class of the peripheral device.
-    name: str # The name of the peripheral device.
-
-    # Recommended:
+    # Recommended
     model: str | None = None
-    serial_number: str | None = None # The peripheral device serial number.
-    uid: str | None = None # The unique identifier of the peripheral device.
-    vendor_name: str | None = None # The peripheral device vendor.
+    serial_number: str | None = None
+    uid: str | None = None
+    vendor_name: str | None = None

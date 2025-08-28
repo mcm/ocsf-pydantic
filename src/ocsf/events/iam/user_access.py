@@ -1,28 +1,47 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from ocsf.events.iam import IAM
-
+from ocsf.events.iam.iam import IAM
 from ocsf.objects.resource_details import ResourceDetails
 from ocsf.objects.user import User
 
 
-class UserAccessManagementActivityId(Enum):
-    Assign_Privileges: int = 1
-    Revoke_Privileges: int = 2
+class ActivityId(Enum):
+    UNKNOWN = 0
+    ASSIGN_PRIVILEGES = 1
+    REVOKE_PRIVILEGES = 2
+    OTHER = 99
 
-class UserAccessManagement(IAM):
-    """
-    User Access Management events report management updates to a user's privileges.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
 
-    class_uid = 3005
-    class_name = 'User Access Management'
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "ASSIGN_PRIVILEGES": "Assign Privileges",
+            "REVOKE_PRIVILEGES": "Revoke Privileges",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    privileges: list[str]  # List of privileges assigned to a user.
-    user: User  # User to which privileges were assigned.
 
-    # Recommended:
-    resource: ResourceDetails | None = None # Resource that the privileges give access to.
+class UserAccess(IAM):
+    class_id: int = 3005
+    class_name: str = "User Access Management"
 
-    # Optional:
-    activity_id: UserAccessManagementActivityId | None = None
+    # Required
+    activity_id: ActivityId
+    privileges: list[str]
+    user: User
+
+    # Recommended
+    resource: ResourceDetails | None = None
+    resources: list[ResourceDetails] | None = None

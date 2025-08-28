@@ -1,0 +1,43 @@
+from enum import Enum, property as enum_property
+from typing import Any
+
+from ocsf.events.system.system import System
+from ocsf.objects.actor import Actor
+from ocsf.objects.module import Module
+
+
+class ActivityId(Enum):
+    UNKNOWN = 0
+    LOAD = 1
+    UNLOAD = 2
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "LOAD": "Load",
+            "UNLOAD": "Unload",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class ModuleActivity(System):
+    class_id: int = 1005
+    class_name: str = "Module Activity"
+
+    # Required
+    activity_id: ActivityId
+    actor: Actor
+    module: Module

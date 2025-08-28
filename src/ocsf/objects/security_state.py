@@ -1,45 +1,81 @@
-from enum import Enum
-from pydantic import BaseModel
+from enum import Enum, property as enum_property
+from typing import Any
 
-class SecurityStateStateId(Enum):
-    """
-    The security state of the managed entity.
-    """
-    Unknown: int = 0
-    Missing_Or_Outdated_Content: int = 1 # The content is missing or outdated.
-    Policy_Mismatch: int = 2 # Not in compliance with the expected security policy.
-    In_Network_Quarantine: int = 3 # Isolated from the network.
-    Protection_Off: int = 4 # Not protected by a security solution.
-    Protection_Malfunction: int = 5 # The security solution is not functioning properly.
-    Protection_Not_Licensed: int = 6 # The security solution does not have a valid license.
-    Unremediated_Threat: int = 7 # A detected threat has not been remediated.
-    Suspicious_Reputation: int = 8 # Reputation of the entity is suspicious.
-    Reboot_Pending: int = 9 # A reboot is required for one or more pending actions.
-    Content_Is_Locked: int = 10 # The content is locked to a specific version.
-    Not_Installed: int = 11 # The entity is not installed.
-    Writable_System_Partition: int = 12 # The system partition is writeable.
-    Safetynet_Failure: int = 13 # The device has failed the SafetyNet check.
-    Failed_Boot_Verify: int = 14 # The device has failed the boot verification process.
-    Modified_Execution_Environment: int = 15 # The execution environment has been modified.
-    Selinux_Disabled: int = 16 # The SELinux security feature has been disabled.
-    Elevated_Privilege_Shell: int = 17 # An elevated privilege shell has been detected.
-    Ios_File_System_Altered: int = 18 # The file system has been altered on an iOS device.
-    Open_Remote_Access: int = 19 # Remote access is enabled.
-    Ota_Updates_Disabled: int = 20 # Mobile OTA (Over The Air) updates have been disabled.
-    Rooted: int = 21 # The device has been modified to allow root access.
-    Android_Partition_Modified: int = 22 # The Android partition has been modified.
-    Compliance_Failure: int = 23 # The entity is not compliant with the associated security policy.
-    Other: int = 99
+from ocsf.objects.object import Object
 
-class SecurityState(BaseModel):
-    """
-    The Security State object describes the security related state of a managed
-    entity.
-    """
 
-    # Recommended:
-    state_id: SecurityStateStateId | None = None # The security state of the managed entity.
+class StateId(Enum):
+    UNKNOWN = 0
+    MISSING_OR_OUTDATED_CONTENT = 1
+    POLICY_MISMATCH = 2
+    IN_NETWORK_QUARANTINE = 3
+    PROTECTION_OFF = 4
+    PROTECTION_MALFUNCTION = 5
+    PROTECTION_NOT_LICENSED = 6
+    UNREMEDIATED_THREAT = 7
+    SUSPICIOUS_REPUTATION = 8
+    REBOOT_PENDING = 9
+    CONTENT_IS_LOCKED = 10
+    NOT_INSTALLED = 11
+    WRITABLE_SYSTEM_PARTITION = 12
+    SAFETYNET_FAILURE = 13
+    FAILED_BOOT_VERIFY = 14
+    MODIFIED_EXECUTION_ENVIRONMENT = 15
+    SELINUX_DISABLED = 16
+    ELEVATED_PRIVILEGE_SHELL = 17
+    IOS_FILE_SYSTEM_ALTERED = 18
+    OPEN_REMOTE_ACCESS = 19
+    OTA_UPDATES_DISABLED = 20
+    ROOTED = 21
+    ANDROID_PARTITION_MODIFIED = 22
+    COMPLIANCE_FAILURE = 23
+    OTHER = 99
 
-    # Optional:
-    state: str | None = None # The security state, normalized to the caption of the state_id value. In
-                             # the case of 'Other', it is defined by the source.
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return StateId[obj]
+        else:
+            return StateId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "MISSING_OR_OUTDATED_CONTENT": "Missing or outdated content",
+            "POLICY_MISMATCH": "Policy mismatch",
+            "IN_NETWORK_QUARANTINE": "In network quarantine",
+            "PROTECTION_OFF": "Protection off",
+            "PROTECTION_MALFUNCTION": "Protection malfunction",
+            "PROTECTION_NOT_LICENSED": "Protection not licensed",
+            "UNREMEDIATED_THREAT": "Unremediated threat",
+            "SUSPICIOUS_REPUTATION": "Suspicious reputation",
+            "REBOOT_PENDING": "Reboot pending",
+            "CONTENT_IS_LOCKED": "Content is locked",
+            "NOT_INSTALLED": "Not installed",
+            "WRITABLE_SYSTEM_PARTITION": "Writable system partition",
+            "SAFETYNET_FAILURE": "SafetyNet failure",
+            "FAILED_BOOT_VERIFY": "Failed boot verify",
+            "MODIFIED_EXECUTION_ENVIRONMENT": "Modified execution environment",
+            "SELINUX_DISABLED": "SELinux disabled",
+            "ELEVATED_PRIVILEGE_SHELL": "Elevated privilege shell",
+            "IOS_FILE_SYSTEM_ALTERED": "iOS file system altered",
+            "OPEN_REMOTE_ACCESS": "Open remote access",
+            "OTA_UPDATES_DISABLED": "OTA updates disabled",
+            "ROOTED": "Rooted",
+            "ANDROID_PARTITION_MODIFIED": "Android partition modified",
+            "COMPLIANCE_FAILURE": "Compliance failure",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class SecurityState(Object):
+    # Recommended
+    state_id: StateId | None = None
+
+    # Optional
+    state: str | None = None

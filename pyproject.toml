@@ -13,7 +13,12 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 license = {text = "MIT License"}
-
+dependencies = [
+    "annotated-types>=0.7.0",
+    "email-validator>=2.3.0",
+    "pydantic>=2.11.7",
+    "pydantic-extra-types>=2.10.5",
+]
 [project.urls]
 Homepage = "https://github.com/crowdalert/ocsf-pydantic"
 

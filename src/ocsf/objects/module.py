@@ -1,36 +1,53 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from pydantic import BaseModel
-from .file import File
+from ocsf.objects.file import File
+from ocsf.objects.object import Object
 
 
-class ModuleLoadTypeId(Enum):
-    Unknown: int = 0
-    Standard: int = 1 # A normal module loaded by the normal windows loading
-                      # mechanism i.e. LoadLibrary.
-    Non_Standard: int = 2 # A module loaded in a way avoidant of normal windows
-                          # procedures. i.e. Bootstrapped Loading/Manual Dll Loading.
-    Shellcode: int = 3 # A raw module in process memory that is READWRITE_EXECUTE and
-                       # had a thread started in its range.
-    Mapped: int = 4 # A memory mapped file, typically created with
-                    # CreatefileMapping/MapViewOfFile.
-    Nonstandard_Backed: int = 5 # A module loaded in a non standard way. However,
-                                # GetModuleFileName succeeds on this allocation.
-    Other: int = 99
+class LoadTypeId(Enum):
+    UNKNOWN = 0
+    STANDARD = 1
+    NON_STANDARD = 2
+    SHELLCODE = 3
+    MAPPED = 4
+    NONSTANDARD_BACKED = 5
+    OTHER = 99
 
-class Module(BaseModel):
-    """
-    The Module object describes the load attributes of a module.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return LoadTypeId[obj]
+        else:
+            return LoadTypeId(obj)
 
-    load_type_id: ModuleLoadTypeId
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "STANDARD": "Standard",
+            "NON_STANDARD": "Non Standard",
+            "SHELLCODE": "ShellCode",
+            "MAPPED": "Mapped",
+            "NONSTANDARD_BACKED": "NonStandard Backed",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    # Recommended:
+
+class Module(Object):
+    # Required
+    load_type_id: LoadTypeId
+
+    # Recommended
     base_address: str | None = None
-    file: File | None = None # The module file object.
+    file: File | None = None
     start_address: str | None = None
-    type: str | None = None # The module type.
+    type_: str | None = None
 
-    # Optional:
+    # Optional
     function_name: str | None = None
     load_type: str | None = None

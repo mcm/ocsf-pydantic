@@ -1,42 +1,86 @@
-
 from datetime import datetime
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any, cast
 
-from .data_classification import DataClassification
+from pydantic import IPvAnyAddress, create_model
 
-from .group import Group
-from ._entity import Entity
-from .file import File
+from ocsf.objects._resource import Resource
+from ocsf.objects.agent import Agent
+from ocsf.objects.encryption_details import EncryptionDetails
+from ocsf.objects.file import File
+from ocsf.objects.graph import Graph
+from ocsf.objects.group import Group
+from ocsf.objects.user import User
+from ocsf.profiles.data_classification import DataClassification
 
 
-class DatabucketTypeId(Enum):
-    """
-    The normalized identifier of the databucket type.
-    """
-    Unknown: int = 0
-    S3: int = 1
-    Azure_Blob: int = 2
-    GCP_Bucket: int = 3
-    Other: int = 99
+class TypeId(Enum):
+    UNKNOWN = 0
+    S3 = 1
+    AZURE_BLOB = 2
+    GCP_BUCKET = 3
+    OTHER = 99
 
-class Databucket(Entity, DataClassification):
-    """
-    The databucket object is a basic container that holds data, typically organized
-    through the use of data partitions.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
 
-    type_id: DatabucketTypeId # The normalized identifier of the databucket type.
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "S3": "S3",
+            "AZURE_BLOB": "Azure Blob",
+            "GCP_BUCKET": "GCP Bucket",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    # Recommended:
-    type: str | None = None # The databucket type.
 
-    # Optional:
-    created_time: datetime | None = None # The time when the databucket was known to have been created.
-    modified_time: datetime | None = None # The most recent time when any changes, updates, or
-                                          # modifications were made within the databucket.
-    desc: str | None = None # The description of the databucket.
-    size: int | None = None # The size of the databucket in bytes.
-    file: File | None = None # A file within a databucket.
-    groups: list[Group] | None = None # The group names to which the databucket belongs.
-    name: str | None = None # The databucket name.
-    uid: str | None = None # The unique identifier of the databucket.
+class Databucket(Resource):
+    # Required
+    type_id: TypeId
+
+    # Recommended
+    hostname: str | None = None
+    ip: IPvAnyAddress | None = None
+    is_public: bool | None = None
+    name: str | None = None
+    owner: User | None = None
+    type_: str | None = None
+    uid: str | None = None
+
+    # Optional
+    agent_list: list[Agent] | None = None
+    cloud_partition: str | None = None
+    created_time: datetime | None = None
+    criticality: str | None = None
+    desc: str | None = None
+    encryption_details: EncryptionDetails | None = None
+    file: File | None = None
+    group: Group | None = None
+    groups: list[Group] | None = None
+    is_backed_up: bool | None = None
+    is_encrypted: bool | None = None
+    modified_time: datetime | None = None
+    namespace: str | None = None
+    region: str | None = None
+    resource_relationship: Graph | None = None
+    size: int | None = None
+    version: str | None = None
+    zone: str | None = None
+
+    @classmethod
+    def with_profile(cls, profile: str) -> type["Databucket"]:
+        if profile == "data_classification":
+            return cast(
+                type[Databucket],
+                create_model("DatabucketWithDataClassification", __base__=(Databucket, DataClassification)),
+            )
+        raise ValueError(f"Profile '{profile}' not available for Databucket")

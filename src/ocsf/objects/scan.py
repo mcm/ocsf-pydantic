@@ -1,33 +1,53 @@
-from enum import Enum
-from ._entity import Entity
+from enum import Enum, property as enum_property
+from typing import Any
 
-class ScanTypeId(Enum):
-    """
-    The type id of the scan.
-    """
-    Unknown: int = 0
-    Manual: int = 1 # The scan was manually initiated by the user or administrator.
-    Scheduled: int = 2 # The scan was started based on scheduler.
-    Updated_Content: int = 3 # The scan was triggered by a content update.
-    Quarantined_Items: int = 4 # The scan was triggered by newly quarantined items.
-    Attached_Media: int = 5 # The scan was triggered by the attachment of removable media.
-    User_Logon: int = 6 # The scan was started due to a user logon.
-    Elam: int = 7 # The scan was triggered by an Early Launch Anti-Malware (ELAM) detection.
-    Other: int = 99 # The scan type id is not mapped. See the <code>type</code> attribute,
-                    # which contains a data source specific value.
+from ocsf.objects._entity import Entity
+
+
+class TypeId(Enum):
+    UNKNOWN = 0
+    MANUAL = 1
+    SCHEDULED = 2
+    UPDATED_CONTENT = 3
+    QUARANTINED_ITEMS = 4
+    ATTACHED_MEDIA = 5
+    USER_LOGON = 6
+    ELAM = 7
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "MANUAL": "Manual",
+            "SCHEDULED": "Scheduled",
+            "UPDATED_CONTENT": "Updated Content",
+            "QUARANTINED_ITEMS": "Quarantined Items",
+            "ATTACHED_MEDIA": "Attached Media",
+            "USER_LOGON": "User Logon",
+            "ELAM": "ELAM",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class Scan(Entity):
-    """
-    The Scan object describes characteristics of a proactive scan.
-    """
+    # Required
+    type_id: TypeId
 
-    type_id: ScanTypeId # The type id of the scan.
+    # Recommended
+    name: str | None = None
+    uid: str | None = None
 
-
-    # Optional:
-    name: str | None = None # The administrator-supplied or application-generated name of the scan. For
-                            # example: "Home office weekly user database scan", "Scan folders for
-                            # viruses", "Full system virus scan"
-    type: str | None = None # The type of scan.
-    uid: str | None = None # The application-defined unique identifier assigned to an instance of a
-                           # scan.
+    # Optional
+    type_: str | None = None

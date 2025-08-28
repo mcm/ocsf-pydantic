@@ -1,48 +1,108 @@
+from enum import Enum, property as enum_property
+from typing import Any, TYPE_CHECKING
 
-from enum import Enum
-from pydantic import EmailStr
+from pydantic import EmailStr, model_validator
 
-from .account import Account
-from .group import Group
-from ._entity import Entity
-from .organization import Organization
-from .ldap_person import LDAPPerson
+from ocsf.objects._entity import Entity
+from ocsf.objects.account import Account
+from ocsf.objects.group import Group
+from ocsf.objects.organization import Organization
+from ocsf.objects.programmatic_credential import ProgrammaticCredential
 
-class UserTypeId(Enum):
-    """
-    The account type identifier.
-    """
-    Unknown: int = 0
-    User: int = 1 # Regular user account.
-    Admin: int = 2 # Admin/root user account.
-    System: int = 3 # System account. For example, Windows computer accounts with a trailing dollar sign ($).
-    Other: int = 99
+if TYPE_CHECKING:
+    from ocsf.objects.ldap_person import LdapPerson
+
+
+class RiskLevelId(Enum):
+    INFO = 0
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    CRITICAL = 4
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return RiskLevelId[obj]
+        else:
+            return RiskLevelId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "INFO": "Info",
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "CRITICAL": "Critical",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class TypeId(Enum):
+    UNKNOWN = 0
+    USER = 1
+    ADMIN = 2
+    SYSTEM = 3
+    SERVICE = 4
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "USER": "User",
+            "ADMIN": "Admin",
+            "SYSTEM": "System",
+            "SERVICE": "Service",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class User(Entity):
-    """
-    The User object describes the characteristics of a user/person or a security
-    principal
-    """
+    # Recommended
+    has_mfa: bool | None = None
+    name: str | None = None
+    type_id: TypeId | None = None
+    uid: str | None = None
 
-    # Recommended:
-    name: str | None = None # The username. For example, `janedoe1`.
-    type_id: UserTypeId | None = None # The account type identifier.
-    uid: str | None = None # The unique user identifier. For example, the Windows user SID,
-                           # ActiveDirectory DN or AWS user ARN.
-
-    # Optional:
-    account: Account | None = None # The user's account or the account associated with the user.
+    # Optional
+    account: Account | None = None
     credential_uid: str | None = None
-    domain: str | None = None # The domain where the user is defined. For example: the LDAP or Active
-                              # Directory domain.
+    display_name: str | None = None
+    domain: str | None = None
     email_addr: EmailStr | None = None
+    forward_addr: EmailStr | None = None
     full_name: str | None = None
-    groups: list[Group] | None = None # The administrative groups to which the user belongs.
-    ldap_person: LDAPPerson | None = None # The additional LDAP attributes that describe a person.
-    org: Organization | None = None # Organization and org unit related to the user.
+    groups: list[Group] | None = None
+    ldap_person: "LdapPerson | None" = None
+    org: Organization | None = None
+    phone_number: str | None = None
+    programmatic_credentials: list[ProgrammaticCredential] | None = None
     risk_level: str | None = None
-    risk_level_id: int | None = None
+    risk_level_id: RiskLevelId | None = None
     risk_score: int | None = None
-    type: str | None = None # The type of the user. For example, System, AWS IAM User, etc.
-    uid_alt: str | None = None # The alternate user identifier. For example, the Active Directory user
-                               # GUID or AWS user Principal ID.
+    type_: str | None = None
+    uid_alt: str | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["account", "name", "uid"]):
+            raise ValueError("At least one of `account`, `name`, `uid` must be provided")
+        return self

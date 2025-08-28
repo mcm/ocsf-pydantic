@@ -1,43 +1,69 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from ocsf.events.iam import IAM
-
-from ocsf.objects.actor import Actor
+from ocsf.events.iam.iam import IAM
 from ocsf.objects.policy import Policy
 from ocsf.objects.user import User
 
 
-class AccountChangeActivityId(Enum):
-    Create: int = 1 # A user/role was created.
-    Enable: int = 2 # A user/role was enabled.
-    Password_Change: int = 3 # An attempt was made to change an account's password.
-    Password_Reset: int = 4 # An attempt was made to reset an account's password.
-    Disable: int = 5 # A user/role was disabled.
-    Delete: int = 6 # A user/role was deleted.
-    Attach_Policy: int = 7 # An IAM Policy was attached to a user/role.
-    Detach_Policy: int = 8 # An IAM Policy was detached from a user/role.
-    Lock: int = 9 # A user account was locked out.
-    Mfa_Factor_Enable: int = 10 # An authentication factor was enabled for an account.
-    Mfa_Factor_Disable: int = 11 # An authentication factor was disabled for an account.
+class ActivityId(Enum):
+    UNKNOWN = 0
+    CREATE = 1
+    ENABLE = 2
+    PASSWORD_CHANGE = 3
+    PASSWORD_RESET = 4
+    DISABLE = 5
+    DELETE = 6
+    ATTACH_POLICY = 7
+    DETACH_POLICY = 8
+    LOCK = 9
+    MFA_FACTOR_ENABLE = 10
+    MFA_FACTOR_DISABLE = 11
+    UNLOCK = 12
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "CREATE": "Create",
+            "ENABLE": "Enable",
+            "PASSWORD_CHANGE": "Password Change",
+            "PASSWORD_RESET": "Password Reset",
+            "DISABLE": "Disable",
+            "DELETE": "Delete",
+            "ATTACH_POLICY": "Attach Policy",
+            "DETACH_POLICY": "Detach Policy",
+            "LOCK": "Lock",
+            "MFA_FACTOR_ENABLE": "MFA Factor Enable",
+            "MFA_FACTOR_DISABLE": "MFA Factor Disable",
+            "UNLOCK": "Unlock",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
 
 class AccountChange(IAM):
-    """
-    Account Change events report when specific user account management tasks are
-    performed, such as a user/role being created, changed, deleted, renamed,
-    disabled, enabled, locked out or unlocked.
-    """
+    class_id: int = 3001
+    class_name: str = "Account Change"
 
-    class_uid = 3001
-    class_name = 'Account Change'
+    # Required
+    activity_id: ActivityId
+    user: User
 
-    user: User # The user that was a target of an activity.
-
-    # Recommended:
-    actor: Actor | None = None
+    # Recommended
     user_result: User | None = None
 
-    # Optional:
-    activity_id: AccountChangeActivityId | None = None
-    policy: Policy | None = None # Details about the IAM policy associated to the Attach/Detach Policy
-                                 # activities.
+    # Optional
+    policies: list[Policy] | None = None
+    policy: Policy | None = None

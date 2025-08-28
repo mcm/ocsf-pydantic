@@ -1,14 +1,10 @@
+from ocsf.events.discovery.discovery_result import DiscoveryResult
 from ocsf.objects.file import File
-
-from ocsf.events.discovery import DiscoveryResult
 
 
 class FileQuery(DiscoveryResult):
-    """
-    File Query events report information about files that are present on the system.
-    """
+    class_id: int = 5007
+    class_name: str = "File Query"
 
-    class_uid: int = 5007
-    class_name: str = 'File Query'
-
-    file: File # The file that is the target of the query.
+    # Required
+    file: File

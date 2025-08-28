@@ -1,18 +1,50 @@
-from ._dns import DNS
+from enum import Enum, property as enum_property
+from typing import Any
 
-class DNSQuery(DNS):
-    """
-    The DNS query object represents a specific request made to the Domain Name
-    System (DNS) to retrieve information about a domain or perform a DNS operation.
-    This object encapsulates the necessary attributes and methods to construct and
-    send DNS queries, specify the query type (e.g., A, AAAA, MX)
-    """
+from ocsf.objects._dns import Dns
 
-    hostname: str # The hostname or domain being queried. For example:
-                  # `www.example.com`
 
-    # Recommended:
-    opcode_id: int | None = None
+class OpcodeId(Enum):
+    QUERY = 0
+    INVERSE_QUERY = 1
+    STATUS = 2
+    RESERVED = 3
+    NOTIFY = 4
+    UPDATE = 5
+    DSO_MESSAGE = 6
+    OTHER = 99
 
-    # Optional:
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return OpcodeId[obj]
+        else:
+            return OpcodeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "QUERY": "Query",
+            "INVERSE_QUERY": "Inverse Query",
+            "STATUS": "Status",
+            "RESERVED": "Reserved",
+            "NOTIFY": "Notify",
+            "UPDATE": "Update",
+            "DSO_MESSAGE": "DSO Message",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class DnsQuery(Dns):
+    # Required
+    hostname: str
+
+    # Recommended
+    opcode_id: OpcodeId | None = None
+
+    # Optional
     opcode: str | None = None

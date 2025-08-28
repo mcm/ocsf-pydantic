@@ -1,23 +1,63 @@
-from ._resource import Resource
-from .user import User
-from .group import Group
-from .agent import Agent
+from enum import Enum, property as enum_property
+from typing import Any
+
+from pydantic import IPvAnyAddress
+
+from ocsf.objects._resource import Resource
+from ocsf.objects.agent import Agent
+from ocsf.objects.graph import Graph
+from ocsf.objects.group import Group
+from ocsf.objects.user import User
+
+
+class RoleId(Enum):
+    UNKNOWN = 0
+    TARGET = 1
+    ACTOR = 2
+    AFFECTED = 3
+    RELATED = 4
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return RoleId[obj]
+        else:
+            return RoleId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "TARGET": "Target",
+            "ACTOR": "Actor",
+            "AFFECTED": "Affected",
+            "RELATED": "Related",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class ResourceDetails(Resource):
-    """
-    The Resource Details object describes details about resources that were affected
-    by the activity/event.
-    """
+    # Recommended
+    hostname: str | None = None
+    ip: IPvAnyAddress | None = None
+    name: str | None = None
+    owner: User | None = None
+    role_id: RoleId | None = None
 
-    # Recommended:
-    owner: User | None = None # The identity of the service or user account that owns the resource.
-
-    # Optional:
+    # Optional
     agent_list: list[Agent] | None = None
     cloud_partition: str | None = None
-    criticality: str | None = None # The criticality of the resource as defined by the event source.
-    group: Group | None = None # The name of the related resource group.
-    namespace: str | None = None # The namespace is useful when similar entities exist that you need to
-                                 # keep separate.
-    region: str | None = None # The cloud region of the resource.
-    version: str | None = None # The version of the resource. For example `1.2.3`.
+    criticality: str | None = None
+    group: Group | None = None
+    is_backed_up: bool | None = None
+    namespace: str | None = None
+    region: str | None = None
+    resource_relationship: Graph | None = None
+    role: str | None = None
+    version: str | None = None
+    zone: str | None = None

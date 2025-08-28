@@ -1,35 +1,61 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from ocsf.events.iam import IAM
-
+from ocsf.events.iam.iam import IAM
 from ocsf.objects.group import Group
 from ocsf.objects.resource_details import ResourceDetails
 from ocsf.objects.user import User
 
 
-class GroupManagementActivityId(Enum):
-    Assign_Privileges: int = 1 # Assign privileges to a group.
-    Revoke_Privileges: int = 2 # Revoke privileges from a group.
-    Add_User: int = 3 # Add user to a group.
-    Remove_User: int = 4 # Remove user from a group.
-    Delete: int = 5 # A group was deleted.
-    Create: int = 6 # A group was created.
+class ActivityId(Enum):
+    UNKNOWN = 0
+    ASSIGN_PRIVILEGES = 1
+    REVOKE_PRIVILEGES = 2
+    ADD_USER = 3
+    REMOVE_USER = 4
+    DELETE = 5
+    CREATE = 6
+    ADD_SUBGROUP = 7
+    REMOVE_SUBGROUP = 8
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "ASSIGN_PRIVILEGES": "Assign Privileges",
+            "REVOKE_PRIVILEGES": "Revoke Privileges",
+            "ADD_USER": "Add User",
+            "REMOVE_USER": "Remove User",
+            "DELETE": "Delete",
+            "CREATE": "Create",
+            "ADD_SUBGROUP": "Add Subgroup",
+            "REMOVE_SUBGROUP": "Remove Subgroup",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class GroupManagement(IAM):
-    """
-    Group Management events report management updates to a group, including updates
-    to membership and permissions.
-    """
+    class_id: int = 3006
+    class_name: str = "Group Management"
 
-    class_uid = 3006
-    class_name = 'Group Management'
+    # Required
+    activity_id: ActivityId
+    group: Group
 
-    group: Group # Group that was the target of the event.
-
-    # Recommended:
-    privileges: list[str] | None = None # A list of privileges assigned to the group.
-    resource: ResourceDetails | None = None # Resource that the privileges give access to.
-    user: User | None = None # A user that was added to or removed from the group.
-
-    # Optional:
-    activity_id: GroupManagementActivityId | None = None
+    # Recommended
+    privileges: list[str] | None = None
+    resource: ResourceDetails | None = None
+    subgroup: Group | None = None
+    user: User | None = None

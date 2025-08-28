@@ -1,43 +1,64 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from ocsf.events.discovery import DiscoveryResult
-
-from ocsf.objects.network_connection_info import NetworkConnectionInformation
+from ocsf.events.discovery.discovery_result import DiscoveryResult
+from ocsf.objects.network_connection_info import NetworkConnectionInfo
 from ocsf.objects.process import Process
 
 
-class NetworkConnectionQueryStateId(Enum):
-    """
-    The state of the socket.
-    """
-    Unknown: int = 0
-    ESTABLISHED: int = 1
-    SYN_SENT: int = 2
-    SYN_RECV: int = 3
-    FIN_WAIT1: int = 4
-    FIN_WAIT2: int = 5
-    TIME_WAIT: int = 6
-    CLOSED: int = 7
-    CLOSE_WAIT: int = 8
-    LAST_ACK: int = 9
-    LISTEN: int = 10
-    CLOSIING: int = 11
-    Other: int = 99
+class StateId(Enum):
+    UNKNOWN = 0
+    ESTABLISHED = 1
+    SYN_SENT = 2
+    SYN_RECV = 3
+    FIN_WAIT1 = 4
+    FIN_WAIT2 = 5
+    TIME_WAIT = 6
+    CLOSED = 7
+    CLOSE_WAIT = 8
+    LAST_ACK = 9
+    LISTEN = 10
+    CLOSING = 11
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return StateId[obj]
+        else:
+            return StateId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "ESTABLISHED": "ESTABLISHED",
+            "SYN_SENT": "SYN_SENT",
+            "SYN_RECV": "SYN_RECV",
+            "FIN_WAIT1": "FIN_WAIT1",
+            "FIN_WAIT2": "FIN_WAIT2",
+            "TIME_WAIT": "TIME_WAIT",
+            "CLOSED": "CLOSED",
+            "CLOSE_WAIT": "CLOSE_WAIT",
+            "LAST_ACK": "LAST_ACK",
+            "LISTEN": "LISTEN",
+            "CLOSING": "CLOSING",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
 
 class NetworkConnectionQuery(DiscoveryResult):
-    """
-    Network Connection Query events report information about active network
-    connections.
-    """
+    class_id: int = 5012
+    class_name: str = "Network Connection Query"
 
-    class_uid: int = 5012
-    class_name: str = 'Network Connection Query'
+    # Required
+    connection_info: NetworkConnectionInfo
+    process: Process
+    state_id: StateId
 
-    connection_info: NetworkConnectionInformation
-    process: Process # The process that owns the socket.
-    state_id: NetworkConnectionQueryStateId # The state of the socket.
-
-    # Recommended:
-    state: str | None = None # The state of the socket, normalized to the caption of the state_id
-                             # value. In the case of 'Other', it is defined by the event source.
+    # Recommended
+    state: str | None = None

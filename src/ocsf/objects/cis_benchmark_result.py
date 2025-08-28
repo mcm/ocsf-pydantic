@@ -1,20 +1,13 @@
-from pydantic import BaseModel
-
-from .remediation import Remediation
-from .rule import Rule
-
-class CISBenchmarkResult(BaseModel):
-    """
-    The CIS Benchmark Result object contains information as defined by the Center
-    for Internet Security (https://www.cisecurity.org/cis-benchmarks/) benchmark result.
-    CIS Benchmarks are a collection of best practices for securely configuring IT systems,
-    software, networks, and cloud infrastructure.
-    """
-
-    name: str # The CIS benchmark name.
+from ocsf.objects.object import Object
+from ocsf.objects.remediation import Remediation
+from ocsf.objects.rule import Rule
 
 
-    # Optional:
-    desc: str | None = None # The CIS benchmark description.
+class CisBenchmarkResult(Object):
+    # Required
+    name: str
+
+    # Optional
+    desc: str | None = None
     remediation: Remediation | None = None
-    rule: Rule | None = None # The CIS benchmark rule.
+    rule: Rule | None = None

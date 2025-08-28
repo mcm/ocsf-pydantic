@@ -1,13 +1,8 @@
-from pydantic import BaseModel
+from ocsf.objects.object import Object
 
-class KeyboardInformation(BaseModel):
-    """
-    The Keyboard Information object contains details and attributes related to a
-    computer or device keyboard. It encompasses information that describes the
-    characteristics, capabilities, and configuration of the keyboard.
-    """
 
-    # Optional:
+class KeyboardInfo(Object):
+    # Optional
     function_keys: int | None = None
     ime: str | None = None
     keyboard_layout: str | None = None

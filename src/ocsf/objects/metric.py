@@ -1,10 +1,7 @@
-from pydantic import BaseModel
+from ocsf.objects.object import Object
 
-class Metric(BaseModel):
-    """
-    The Metric object defines a simple name/value pair entity for a metric.
-    """
 
-    name: str # The name of the metric.
-    value: str # The value of the metric.
-
+class Metric(Object):
+    # Required
+    name: str
+    value: str

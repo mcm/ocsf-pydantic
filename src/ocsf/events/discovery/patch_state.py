@@ -1,19 +1,27 @@
-from ocsf.events.discovery import Discovery
+from pydantic import model_validator
 
+from ocsf.events.discovery.discovery import Discovery
 from ocsf.objects.device import Device
-from ocsf.objects.kb_article import KBArticle
+from ocsf.objects.kb_article import KbArticle
 
 
-class OperatingSystemPatchState(Discovery):
-    """
-    Operating System Patch State reports the installation of an OS patch to a device
-    and any associated knowledgebase articles.
-    """
+class PatchState(Discovery):
+    class_id: int = 5004
+    class_name: str = "Operating System Patch State"
 
-    class_uid: int = 5004
-    class_name: str = 'Operating System Patch State'
-
+    # Required
     device: Device
 
-    # Recommended:
-    kb_article_list: list[KBArticle] | None = None
+    # Recommended
+    kb_article_list: list[KbArticle] | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(
+            getattr(self, field) is None
+            for field in ["device.os.sp_name", "device.os.sp_ver", "device.os.version"]
+        ):
+            raise ValueError(
+                "At least one of `device.os.sp_name`, `device.os.sp_ver`, `device.os.version` must be provided"
+            )
+        return self

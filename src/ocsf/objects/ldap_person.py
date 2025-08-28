@@ -1,38 +1,36 @@
 from datetime import datetime
-
-from pydantic import BaseModel, EmailStr
-
-from .location import GeoLocation
-
 from typing import TYPE_CHECKING
+
+from pydantic import EmailStr
+
+from ocsf.objects.key_value_object import KeyValueObject
+from ocsf.objects.location import Location
+from ocsf.objects.object import Object
+
 if TYPE_CHECKING:
-    from .user import User
+    from ocsf.objects.user import User
 
 
-class LDAPPerson(BaseModel):
-    """
-    The additional LDAP attributes that describe a person.
-    """
-
-    # Optional:
+class LdapPerson(Object):
+    # Optional
     cost_center: str | None = None
-    created_time: datetime | None = None # The timestamp when the user was created.
+    created_time: datetime | None = None
     deleted_time: datetime | None = None
+    display_name: str | None = None
     email_addrs: list[EmailStr] | None = None
     employee_uid: str | None = None
     given_name: str | None = None
     hire_time: datetime | None = None
     job_title: str | None = None
-    labels: list[str] | None = None # The labels associated with the user. For example in AD this could
-                                    # be the `userType`, `employeeType`. For
-                                    # example: `Member, Employee`.
+    labels: list[str] | None = None
     last_login_time: datetime | None = None
     ldap_cn: str | None = None
     ldap_dn: str | None = None
     leave_time: datetime | None = None
-    location: GeoLocation | None = None # The geographical location associated with a user. This is
-                                        # typically the user's usual work location.
-    manager: 'User | None' = None
-    modified_time: datetime | None = None # The timestamp when the user entry was last modified.
+    location: Location | None = None
+    manager: "User | None" = None
+    modified_time: datetime | None = None
     office_location: str | None = None
+    phone_number: str | None = None
     surname: str | None = None
+    tags: list[KeyValueObject] | None = None

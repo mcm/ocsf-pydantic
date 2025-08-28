@@ -1,15 +1,49 @@
-from pydantic import BaseModel
+from enum import Enum, property as enum_property
+from typing import Any
 
-class KillChainPhase(BaseModel):
-    """
-    The Kill Chain Phase object represents a single phase of a cyber attack,
-    including the initial reconnaissance and planning stages up to the final
-    objective of the attacker. It provides a detailed description of each phase and
-    its associated activities within the broader context of a cyber attack
-    See: https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html
-    """
+from ocsf.objects.object import Object
 
-    phase_id: int
 
-    # Recommended:
+class PhaseId(Enum):
+    UNKNOWN = 0
+    RECONNAISSANCE = 1
+    WEAPONIZATION = 2
+    DELIVERY = 3
+    EXPLOITATION = 4
+    INSTALLATION = 5
+    COMMAND___CONTROL = 6
+    ACTIONS_ON_OBJECTIVES = 7
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return PhaseId[obj]
+        else:
+            return PhaseId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "RECONNAISSANCE": "Reconnaissance",
+            "WEAPONIZATION": "Weaponization",
+            "DELIVERY": "Delivery",
+            "EXPLOITATION": "Exploitation",
+            "INSTALLATION": "Installation",
+            "COMMAND___CONTROL": "Command & Control",
+            "ACTIONS_ON_OBJECTIVES": "Actions on Objectives",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class KillChainPhase(Object):
+    # Required
+    phase_id: PhaseId
+
+    # Recommended
     phase: str | None = None

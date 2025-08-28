@@ -1,73 +1,179 @@
-from enum import Enum
 from datetime import datetime
+from enum import Enum, property as enum_property
+from typing import Any, cast
 
-from .data_classification import DataClassification
+from pydantic import AnyUrl, create_model
 
-from ._entity import Entity
+from ocsf.objects._entity import Entity
+from ocsf.objects.digital_signature import DigitalSignature
+from ocsf.objects.encryption_details import EncryptionDetails
+from ocsf.objects.fingerprint import Fingerprint
+from ocsf.objects.key_value_object import KeyValueObject
+from ocsf.objects.product import Product
+from ocsf.objects.url import Url
+from ocsf.objects.user import User
+from ocsf.profiles.data_classification import DataClassification
 
-from .user import User
-from .product import Product
-from .digital_signature import DigitalSignature
-from .fingerprint import Fingerprint
 
-class FileTypeId(Enum):
-    """
-    The file type ID.
-    """
-    Unknown: int = 0
-    Regular_File: int = 1
-    Folder: int = 2
-    Character_Device: int = 3
-    Block_Device: int = 4
-    Local_Socket: int = 5
-    Named_Pipe: int = 6
-    Symbolic_Link: int = 7
-    Other: int = 99
+class ConfidentialityId(Enum):
+    UNKNOWN = 0
+    NOT_CONFIDENTIAL = 1
+    CONFIDENTIAL = 2
+    SECRET = 3
+    TOP_SECRET = 4
+    PRIVATE = 5
+    RESTRICTED = 6
+    OTHER = 99
 
-class File(Entity, DataClassification):
-    """
-    The File object represents the metadata associated with a file stored in a
-    computer system. It encompasses information about the file itself, including its
-    attributes, properties, and organizational details. Defined by D3FEND <a
-    target='_blank'
-    href='https://next.d3fend.mitre.org/dao/artifact/d3f:File/'>d3f:File</a>.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ConfidentialityId[obj]
+        else:
+            return ConfidentialityId(obj)
 
-    name: str # The name of the file. For example: `svchost.exe`
-    type_id: FileTypeId # The file type ID.
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "NOT_CONFIDENTIAL": "Not Confidential",
+            "CONFIDENTIAL": "Confidential",
+            "SECRET": "Secret",
+            "TOP_SECRET": "Top Secret",
+            "PRIVATE": "Private",
+            "RESTRICTED": "Restricted",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    # Recommended:
-    ext: str | None = None # The extension of the file, excluding the leading dot. For example:
-                           # `exe` from `svchost.exe`, or `gz` from
-                           # `export.tar.gz`.
+
+class DriveTypeId(Enum):
+    UNKNOWN = 0
+    REMOVABLE = 1
+    FIXED = 2
+    REMOTE = 3
+    CD_ROM = 4
+    RAM_DISK = 5
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return DriveTypeId[obj]
+        else:
+            return DriveTypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "REMOVABLE": "Removable",
+            "FIXED": "Fixed",
+            "REMOTE": "Remote",
+            "CD_ROM": "CD-ROM",
+            "RAM_DISK": "RAM Disk",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class TypeId(Enum):
+    UNKNOWN = 0
+    REGULAR_FILE = 1
+    FOLDER = 2
+    CHARACTER_DEVICE = 3
+    BLOCK_DEVICE = 4
+    LOCAL_SOCKET = 5
+    NAMED_PIPE = 6
+    SYMBOLIC_LINK = 7
+    EXECUTABLE_FILE = 8
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "REGULAR_FILE": "Regular File",
+            "FOLDER": "Folder",
+            "CHARACTER_DEVICE": "Character Device",
+            "BLOCK_DEVICE": "Block Device",
+            "LOCAL_SOCKET": "Local Socket",
+            "NAMED_PIPE": "Named Pipe",
+            "SYMBOLIC_LINK": "Symbolic Link",
+            "EXECUTABLE_FILE": "Executable File",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class File(Entity):
+    # Required
+    name: str
+    type_id: TypeId
+
+    # Recommended
+    ext: str | None = None
     hashes: list[Fingerprint] | None = None
-    path: str | None = None # The full path to the file. For example:
-                            # `c:\windows\system32\svchost.exe`.
+    path: str | None = None
 
-    # Optional:
+    # Optional
     accessed_time: datetime | None = None
     accessor: User | None = None
     attributes: int | None = None
     company_name: str | None = None
     confidentiality: str | None = None
-    confidentiality_id: int | None = None
-    created_time: datetime | None = None # The time when the file was created.
-    creator: User | None = None # The user that created the file.
-    desc: str | None = None # The description of the file, as returned by file system. For example: the
-                            # description as returned by the Unix file command or the Windows file
-                            # type.
+    confidentiality_id: ConfidentialityId | None = None
+    created_time: datetime | None = None
+    creator: User | None = None
+    desc: str | None = None
+    drive_type: str | None = None
+    drive_type_id: DriveTypeId | None = None
+    encryption_details: EncryptionDetails | None = None
+    internal_name: str | None = None
+    is_deleted: bool | None = None
+    is_encrypted: bool | None = None
+    is_public: bool | None = None
+    is_readonly: bool | None = None
     is_system: bool | None = None
     mime_type: str | None = None
-    modified_time: datetime | None = None # The time when the file was last modified.
-    modifier: User | None = None # The user that last modified the file.
+    modified_time: datetime | None = None
+    modifier: User | None = None
     owner: User | None = None
     parent_folder: str | None = None
-    product: Product | None = None # The product that created or installed the file.
+    product: Product | None = None
     security_descriptor: str | None = None
     signature: DigitalSignature | None = None
     size: int | None = None
-    type: str | None = None # The file type.
-    uid: str | None = None # The unique identifier of the file as defined by the storage system, such
-                           # the file system file ID.
-    version: str | None = None # The file version. For example: `8.0.7601.17514`.
-    xattributes: object | None = None
+    storage_class: str | None = None
+    tags: list[KeyValueObject] | None = None
+    type_: str | None = None
+    uid: str | None = None
+    uri: AnyUrl | None = None
+    url: Url | None = None
+    version: str | None = None
+    volume: str | None = None
+    xattributes: dict[str, Any] | None = None
+
+    @classmethod
+    def with_profile(cls, profile: str) -> type["File"]:
+        if profile == "data_classification":
+            return cast(
+                type[File], create_model("FileWithDataClassification", __base__=(File, DataClassification))
+            )
+        raise ValueError(f"Profile '{profile}' not available for File")

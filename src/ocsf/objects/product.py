@@ -1,26 +1,31 @@
-from pydantic import AnyUrl
+from typing import cast
 
-from .data_classification import DataClassification
+from pydantic import AnyUrl, create_model
 
-from ._entity import Entity
-from .feature import Feature
+from ocsf.objects._entity import Entity
+from ocsf.objects.feature import Feature
+from ocsf.profiles.data_classification import DataClassification
 
-class Product(Entity, DataClassification):
-    """
-    The Product object describes characteristics of a software product.
-    """
 
-    vendor_name: str # The name of the vendor of the product.
+class Product(Entity):
+    # Recommended
+    name: str | None = None
+    uid: str | None = None
+    vendor_name: str | None = None
+    version: str | None = None
 
-    # Recommended:
-    version: str | None = None # The version of the product, as defined by the event source. For
-                               # example: `2013.1.3-beta`.
-
-    # Optional:
-    feature: Feature | None = None
+    # Optional
     cpe_name: str | None = None
+    feature: Feature | None = None
     lang: str | None = None
-    name: str | None = None # The name of the product.
-    path: str | None = None # The installation path of the product.
-    uid: str | None = None # The unique identifier of the product.
-    url_string: AnyUrl | None = None # The URL pointing towards the product.
+    path: str | None = None
+    url_string: AnyUrl | None = None
+
+    @classmethod
+    def with_profile(cls, profile: str) -> type["Product"]:
+        if profile == "data_classification":
+            return cast(
+                type[Product],
+                create_model("ProductWithDataClassification", __base__=(Product, DataClassification)),
+            )
+        raise ValueError(f"Profile '{profile}' not available for Product")

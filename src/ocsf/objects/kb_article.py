@@ -1,27 +1,65 @@
 from datetime import datetime
-from pydantic import BaseModel, AnyUrl
+from enum import Enum, property as enum_property
+from typing import Any
 
-from .os import OperatingSystem
-from .product import Product
+from pydantic import AnyUrl, model_validator
+
+from ocsf.objects.object import Object
+from ocsf.objects.os import Os
+from ocsf.objects.product import Product
+from ocsf.objects.timespan import Timespan
 
 
-class KBArticle(BaseModel):
-    """
-    The KB Article object contains metadata that describes the patch or update.
-    """
+class InstallStateId(Enum):
+    UNKNOWN = 0
+    INSTALLED = 1
+    NOT_INSTALLED = 2
+    INSTALLED_PENDING_REBOOT = 3
+    OTHER = 99
 
-    uid: str # The unique identifier for the kb article.
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return InstallStateId[obj]
+        else:
+            return InstallStateId(obj)
 
-    # Recommended:
-    title: str | None = None # The title of the kb article.
-    os: OperatingSystem | None = None # The operating system the kb article applies.
-    severity: str | None = None # The severity of the kb article.
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "INSTALLED": "Installed",
+            "NOT_INSTALLED": "Not Installed",
+            "INSTALLED_PENDING_REBOOT": "Installed Pending Reboot",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    # Optional:
-    bulletin: str | None = None # The kb article bulletin identifier.
-    product: Product | None = None # The product details the kb article applies.
-    is_superseded: bool | None = None # The kb article has been replaced by another.
-    created_time: datetime | None = None # The date the kb article was released by the vendor.
-    size: int | None = None # The size in bytes for the kb article.
-    src_url: AnyUrl | None = None # The kb article link from the source vendor.
-    classification: str | None = None # The vendors classification of the kb article.
+
+class KbArticle(Object):
+    # Recommended
+    install_state: str | None = None
+    install_state_id: InstallStateId | None = None
+    os: Os | None = None
+    severity: str | None = None
+    title: str | None = None
+    uid: str | None = None
+
+    # Optional
+    avg_timespan: Timespan | None = None
+    bulletin: str | None = None
+    classification: str | None = None
+    created_time: datetime | None = None
+    is_superseded: bool | None = None
+    product: Product | None = None
+    size: int | None = None
+    src_url: AnyUrl | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["uid", "src_url"]):
+            raise ValueError("At least one of `uid`, `src_url` must be provided")
+        return self

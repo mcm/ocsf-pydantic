@@ -1,40 +1,87 @@
 from datetime import datetime
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from pydantic import BaseModel
+from ocsf.objects.certificate import Certificate
+from ocsf.objects.fingerprint import Fingerprint
+from ocsf.objects.object import Object
 
-from .certificate import DigitalCertificate
-from .fingerprint import Fingerprint
+
+class AlgorithmId(Enum):
+    UNKNOWN = 0
+    DSA = 1
+    RSA = 2
+    ECDSA = 3
+    AUTHENTICODE = 4
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return AlgorithmId[obj]
+        else:
+            return AlgorithmId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "DSA": "DSA",
+            "RSA": "RSA",
+            "ECDSA": "ECDSA",
+            "AUTHENTICODE": "Authenticode",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
 
-class DigitalSignatureAlgorithmId(Enum):
-    """
-    The identifier of the normalized digital signature algorithm.
-    """
-    Other: int = 99
-    Unknown: int = 0
-    DSA: int = 1 # Digital Signature Algorithm (DSA).
-    RSA: int = 2 # Rivest-Shamir-Adleman (RSA) Algorithm.
-    ECDSA: int = 3 # Elliptic Curve Digital Signature Algorithm.
-    Authenticode: int = 4 # Microsoft Authenticode Digital Signature Algorithm.
+class StateId(Enum):
+    UNKNOWN = 0
+    VALID = 1
+    EXPIRED = 2
+    REVOKED = 3
+    SUSPENDED = 4
+    PENDING = 5
+    OTHER = 99
 
-class DigitalSignature(BaseModel):
-    """
-    The Digital Signature object contains information about the cryptographic
-    mechanism used to verify the authenticity, integrity, and origin of the file or
-    application.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return StateId[obj]
+        else:
+            return StateId(obj)
 
-    algorithm_id: DigitalSignatureAlgorithmId # The identifier of the normalized digital
-                                                            # signature algorithm.
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "VALID": "Valid",
+            "EXPIRED": "Expired",
+            "REVOKED": "Revoked",
+            "SUSPENDED": "Suspended",
+            "PENDING": "Pending",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    # Recommended:
-    certificate: DigitalCertificate | None = None
 
-    # Optional:
-    algorithm: str | None = None # The digital signature algorithm used to create the signature,
-                                 # normalized to the caption of 'algorithm_id'. In the case of 'Other',
-                                 # it is defined by the event source.
-    created_time: datetime | None = None # The time when the digital signature was created.
+class DigitalSignature(Object):
+    # Required
+    algorithm_id: AlgorithmId
+
+    # Recommended
+    certificate: Certificate | None = None
+
+    # Optional
+    algorithm: str | None = None
+    created_time: datetime | None = None
     developer_uid: str | None = None
     digest: Fingerprint | None = None
+    state: str | None = None
+    state_id: StateId | None = None

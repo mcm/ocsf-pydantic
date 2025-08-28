@@ -1,65 +1,109 @@
-from enum import Enum
-from pydantic import IPvAnyAddress
+from enum import Enum, property as enum_property
+from typing import Any, cast
+
+from pydantic import IPvAnyAddress, create_model, model_validator
 from pydantic_extra_types.mac_address import MacAddress
 
-from ._entity import Entity
+from ocsf.objects._entity import Entity
+from ocsf.objects.agent import Agent
+from ocsf.objects.device_hw_info import DeviceHwInfo
+from ocsf.objects.location import Location
+from ocsf.objects.os import Os
+from ocsf.objects.user import User
+from ocsf.profiles.container import Container
 
-from .user import User
-from .agent import Agent
-from .os import OperatingSystem
-from .device_hw_info import DeviceHardwareInfo
-from .location import GeoLocation
-from .container import Container
 
-class EndpointTypeId(Enum):
-    """
-    The endpoint type ID.
-    """
-    Server: int = 1
-    Desktop: int = 2
-    Laptop: int = 3
-    Tablet: int = 4
-    Mobile: int = 5
-    Virtual: int = 6
-    IOT: int = 7
-    Browser: int = 8
-    Firewall: int = 9
-    Switch: int = 10
-    Hub: int = 11
+class TypeId(Enum):
+    UNKNOWN = 0
+    SERVER = 1
+    DESKTOP = 2
+    LAPTOP = 3
+    TABLET = 4
+    MOBILE = 5
+    VIRTUAL = 6
+    IOT = 7
+    BROWSER = 8
+    FIREWALL = 9
+    SWITCH = 10
+    HUB = 11
+    ROUTER = 12
+    IDS = 13
+    IPS = 14
+    LOAD_BALANCER = 15
+    OTHER = 99
 
-class Endpoint(Entity, Container):
-    """
-    The Endpoint object describes a physical or virtual device that connects to and
-    exchanges information with a computer network. Some examples of endpoints are
-    mobile devices, desktop computers, virtual machines, embedded devices, and
-    servers. Internet-of-Things devices—like cameras, lighting, refrigerators,
-    security systems, smart speakers, and thermostats—are also endpoints.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
 
-    # Recommended:
-    hostname: str | None = None # The fully qualified name of the endpoint.
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "SERVER": "Server",
+            "DESKTOP": "Desktop",
+            "LAPTOP": "Laptop",
+            "TABLET": "Tablet",
+            "MOBILE": "Mobile",
+            "VIRTUAL": "Virtual",
+            "IOT": "IOT",
+            "BROWSER": "Browser",
+            "FIREWALL": "Firewall",
+            "SWITCH": "Switch",
+            "HUB": "Hub",
+            "ROUTER": "Router",
+            "IDS": "IDS",
+            "IPS": "IPS",
+            "LOAD_BALANCER": "Load Balancer",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class Endpoint(Entity):
+    # Recommended
+    hostname: str | None = None
     instance_uid: str | None = None
     interface_name: str | None = None
     interface_uid: str | None = None
-    ip: IPvAnyAddress | None = None # The IP address of the endpoint, in either IPv4 or IPv6 format.
-    owner: User | None = None # The identity of the service or user account that owns the endpoint or
-                              # was last logged into it.
-    type_id: EndpointTypeId | None = None # The endpoint type ID.
+    ip: IPvAnyAddress | None = None
+    name: str | None = None
+    owner: User | None = None
+    type_id: TypeId | None = None
+    uid: str | None = None
 
-    # Optional:
+    # Optional
     agent_list: list[Agent] | None = None
     domain: str | None = None
-    hw_info: DeviceHardwareInfo | None = None
-    location: GeoLocation | None = None # The geographical location of the endpoint.
-    mac: MacAddress | None = None # The Media Access Control (MAC) address of the endpoint.
-    name: str | None = None # The short name of the endpoint.
-    os: OperatingSystem | None = None # The endpoint operating system.
+    hw_info: DeviceHwInfo | None = None
+    location: Location | None = None
+    mac: MacAddress | None = None
+    os: Os | None = None
     subnet_uid: str | None = None
-    type: str | None = None # The endpoint type. For example: `unknown`,
-                            # `server`, `desktop`, `laptop`,
-                            # `tablet`, `mobile`, `virtual`,
-                            # `browser`, or `other`.
-    uid: str | None = None # The unique identifier of the endpoint.
+    type_: str | None = None
     vlan_uid: str | None = None
     vpc_uid: str | None = None
     zone: str | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(
+            getattr(self, field) is None
+            for field in ["ip", "uid", "name", "hostname", "instance_uid", "interface_uid", "interface_name"]
+        ):
+            raise ValueError(
+                "At least one of `ip`, `uid`, `name`, `hostname`, `instance_uid`, `interface_uid`, `interface_name` must be provided"
+            )
+        return self
+
+    @classmethod
+    def with_profile(cls, profile: str) -> type["Endpoint"]:
+        if profile == "container":
+            return cast(type[Endpoint], create_model("EndpointWithContainer", __base__=(Endpoint, Container)))
+        raise ValueError(f"Profile '{profile}' not available for Endpoint")

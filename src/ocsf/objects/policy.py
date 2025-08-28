@@ -1,22 +1,26 @@
-from ._entity import Entity
+from typing import Any
 
-from .group import Group
+from pydantic import model_validator
+
+from ocsf.objects._entity import Entity
+from ocsf.objects.group import Group
+
 
 class Policy(Entity):
-    """
-    The Policy object describes the policies that are applicable. <p>Policy
-    attributes provide traceability to the operational state of the security product
-    at the time that the event was captured, facilitating forensics,
-    troubleshooting, and policy tuning/adjustments.</p>
-    """
+    # Recommended
+    is_applied: bool | None = None
+    name: str | None = None
+    uid: str | None = None
+    version: str | None = None
 
-    # Recommended:
-    version: str | None = None # The policy version number.
-    is_applied: bool | None = None # A determination if the content of a policy was applied to a target
-                                   # or request, or not.
+    # Optional
+    data: dict[str, Any] | None = None
+    desc: str | None = None
+    group: Group | None = None
+    type_: str | None = None
 
-    # Optional:
-    desc: str | None = None # The description of the policy.
-    group: Group | None = None # The policy group.
-    name: str | None = None # The policy name. For example: `IAM Policy`.
-    uid: str | None = None # A unique identifier of the policy instance.
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["name", "type", "uid"]):
+            raise ValueError("At least one of `name`, `type`, `uid` must be provided")
+        return self

@@ -1,35 +1,61 @@
+from enum import Enum, property as enum_property
+from typing import Any
 
-from enum import Enum
+from pydantic import model_validator
 
-from ocsf.events.iam import IAM
-
+from ocsf.events.iam.iam import IAM
 from ocsf.objects.group import Group
 from ocsf.objects.network_endpoint import NetworkEndpoint
 from ocsf.objects.session import Session
 from ocsf.objects.user import User
 
 
-class AuthorizeSessionActivityId(Enum):
-    Assign_Privileges: int = 1 # Assign special privileges to a new logon.
-    Assign_Groups: int = 2 # Assign special groups to a new logon.
+class ActivityId(Enum):
+    UNKNOWN = 0
+    ASSIGN_PRIVILEGES = 1
+    ASSIGN_GROUPS = 2
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "ASSIGN_PRIVILEGES": "Assign Privileges",
+            "ASSIGN_GROUPS": "Assign Groups",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class AuthorizeSession(IAM):
-    """
-    Authorize Session events report privileges or groups assigned to a new user
-    session, usually at login time.
-    """
+    class_id: int = 3003
+    class_name: str = "Authorize Session"
 
-    class_uid = 3003
-    class_name = 'Authorize Session'
+    # Required
+    activity_id: ActivityId
+    user: User
 
-    user: User # The user to which new privileges were assigned.
+    # Recommended
+    group: Group | None = None
+    privileges: list[str] | None = None
+    session: Session | None = None
 
-    # Recommended:
-    group: Group | None = None # Group that was assigned to the new user session.
-    privileges: list[str] | None = None # The list of sensitive privileges, assigned to the new user
-                                        # session.
-    session: Session | None = None # The user session with the assigned privileges.
+    # Optional
+    dst_endpoint: NetworkEndpoint | None = None
 
-    # Optional:
-    activity_id: AuthorizeSessionActivityId | None = None
-    dst_endpoint: NetworkEndpoint | None = None # The Endpoint for which the user session was targeted.
+    @model_validator(mode="after")
+    def validate_just_one(self):
+        count = len([f for f in ["privileges", "group"] if getattr(self, f) is not None])
+        if count != 1:
+            raise ValueError("Just one of `privileges`, `group` must be provided, got {count}")
+        return self

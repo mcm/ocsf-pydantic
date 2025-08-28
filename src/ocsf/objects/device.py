@@ -1,68 +1,149 @@
 from datetime import datetime
+from enum import Enum, property as enum_property
+from typing import Any
+from uuid import UUID
 
-from pydantic.networks import IPvAnyAddress
+from pydantic import IPvAnyAddress, IPvAnyNetwork
 
-from .image import Image
-from .network_interface import NetworkInterface
-from .group import Group
-from .organization import Organization
-from .endpoint import Endpoint
-from .location import GeoLocation
+from ocsf.objects.endpoint import Endpoint
+from ocsf.objects.group import Group
+from ocsf.objects.image import Image
+from ocsf.objects.location import Location
+from ocsf.objects.network_interface import NetworkInterface
+from ocsf.objects.organization import Organization
+
+
+class RiskLevelId(Enum):
+    INFO = 0
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    CRITICAL = 4
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return RiskLevelId[obj]
+        else:
+            return RiskLevelId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "INFO": "Info",
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "CRITICAL": "Critical",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class TypeId(Enum):
+    UNKNOWN = 0
+    SERVER = 1
+    DESKTOP = 2
+    LAPTOP = 3
+    TABLET = 4
+    MOBILE = 5
+    VIRTUAL = 6
+    IOT = 7
+    BROWSER = 8
+    FIREWALL = 9
+    SWITCH = 10
+    HUB = 11
+    ROUTER = 12
+    IDS = 13
+    IPS = 14
+    LOAD_BALANCER = 15
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "SERVER": "Server",
+            "DESKTOP": "Desktop",
+            "LAPTOP": "Laptop",
+            "TABLET": "Tablet",
+            "MOBILE": "Mobile",
+            "VIRTUAL": "Virtual",
+            "IOT": "IOT",
+            "BROWSER": "Browser",
+            "FIREWALL": "Firewall",
+            "SWITCH": "Switch",
+            "HUB": "Hub",
+            "ROUTER": "Router",
+            "IDS": "IDS",
+            "IPS": "IPS",
+            "LOAD_BALANCER": "Load Balancer",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
 
 class Device(Endpoint):
-    """
-    The Device object represents an addressable computer system or host, which is
-    typically connected to a computer network and participates in the transmission
-    or processing of data within the computer network. Defined by D3FEND <a
-    target='_blank'
-    href='https://d3fend.mitre.org/dao/artifact/d3f:Host/'>d3f:Host</a>.
-    """
+    # Required
+    type_id: TypeId
 
-    type_id: int # The device type ID.
+    # Recommended
+    hostname: str | None = None
+    region: str | None = None
+    type_: str | None = None
+    uid: str | None = None
+    vendor_name: str | None = None
 
-    # Recommended:
-    hostname: str | None = None # The device hostname.
-    region: str | None = None # The region where the virtual machine is located. For example, an AWS
-                              # Region.
-    type: str | None = None # The device type. For example: `unknown`, `server`,
-                            # `desktop`, `laptop`, `tablet`,
-                            # `mobile`, `virtual`, `browser`, or
-                            # `other`.
-    uid: str | None = None # The unique identifier of the device. For example the Windows TargetSID or
-                           # AWS EC2 ARN.
-
-    # Optional:
+    # Optional
     autoscale_uid: str | None = None
-    created_time: datetime | None = None # The time when the device was known to have been created.
-    desc: str | None = None # The description of the device, ordinarily as reported by the operating
-                            # system.
-    domain: str | None = None # The network domain where the device resides. For example:
-                              # `work.example.com`.
-    first_seen_time: datetime | None = None # The initial discovery time of the device.
-    groups: list[Group] | None = None # The group names to which the device belongs. For example:
-                                      # `["Windows Laptops", "Engineering"]<code/>.
+    boot_time: datetime | None = None
+    boot_uid: str | None = None
+    created_time: datetime | None = None
+    desc: str | None = None
+    domain: str | None = None
+    eid: str | None = None
+    first_seen_time: datetime | None = None
+    groups: list[Group] | None = None
     hypervisor: str | None = None
-    image: Image | None = None # The image used as a template to run the virtual machine.
+    iccid: str | None = None
+    image: Image | None = None
     imei: str | None = None
-    ip: IPvAnyAddress | None = None # The device IP address, in either IPv4 or IPv6 format.
+    imei_list: list[str] | None = None
+    ip: IPvAnyAddress | None = None
+    is_backed_up: bool | None = None
     is_compliant: bool | None = None
     is_managed: bool | None = None
+    is_mobile_account_active: bool | None = None
     is_personal: bool | None = None
+    is_shared: bool | None = None
+    is_supervised: bool | None = None
     is_trusted: bool | None = None
-    last_seen_time: datetime | None = None # The most recent discovery time of the device.
-    location: GeoLocation | None = None # The geographical location of the device.
-    modified_time: datetime | None = None # The time when the device was last known to have been
-                                          # modified.
-    name: str | None = None # The alternate device name, ordinarily as assigned by an administrator.
-                            # <p><b>Note:</b> The <b>Name</b> could be any other string that helps to
-                            # identify the device, such as a phone number; for example
-                            # `310-555-1234`.</p>
+    last_seen_time: datetime | None = None
+    location: Location | None = None
+    meid: str | None = None
+    model: str | None = None
+    modified_time: datetime | None = None
+    name: str | None = None
     network_interfaces: list[NetworkInterface] | None = None
-    org: Organization | None = None # Organization and org unit related to the device.
+    org: Organization | None = None
+    os_machine_uuid: UUID | None = None
     risk_level: str | None = None
-    risk_level_id: int | None = None
+    risk_level_id: RiskLevelId | None = None
     risk_score: int | None = None
-    subnet: str | None = None
-    uid_alt: str | None = None # An alternate unique identifier of the device if any. For example the
-                               # ActiveDirectory DN.
+    subnet: IPvAnyNetwork | None = None
+    udid: str | None = None
+    uid_alt: str | None = None

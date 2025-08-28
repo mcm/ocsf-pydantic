@@ -1,12 +1,8 @@
-from pydantic import BaseModel
+from ocsf.objects.object import Object
 
-class Display(BaseModel):
-    """
-    The Display object contains information about the physical or virtual display
-    connected to a computer system.
-    """
 
-    # Optional:
+class Display(Object):
+    # Optional
     color_depth: int | None = None
     physical_height: int | None = None
     physical_orientation: int | None = None

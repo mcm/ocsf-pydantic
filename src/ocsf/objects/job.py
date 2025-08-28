@@ -1,40 +1,56 @@
 from datetime import datetime
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from pydantic import BaseModel
+from ocsf.objects.file import File
+from ocsf.objects.object import Object
+from ocsf.objects.user import User
 
-from .file import File
-from .user import User
 
-class JobRunStateId(Enum):
-    """
-    The run state ID of the job.
-    """
-    Unknown: int = 0
-    Ready: int = 1
-    Queued: int = 2
-    Running: int = 3
-    Stopped: int = 4
-    Other: int = 99
+class RunStateId(Enum):
+    UNKNOWN = 0
+    READY = 1
+    QUEUED = 2
+    RUNNING = 3
+    STOPPED = 4
+    OTHER = 99
 
-class Job(BaseModel):
-    """
-    The Job object provides information about a scheduled job or task, including its
-    name, command line, and state. It encompasses attributes that describe the
-    properties and status of the scheduled job.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return RunStateId[obj]
+        else:
+            return RunStateId(obj)
 
-    file: File # The file that pertains to the job.
-    name: str # The name of the job.
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "READY": "Ready",
+            "QUEUED": "Queued",
+            "RUNNING": "Running",
+            "STOPPED": "Stopped",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    # Recommended:
-    cmd_line: str | None = None # The job command line.
-    created_time: datetime | None = None # The time when the job was created.
-    desc: str | None = None # The description of the job.
-    last_run_time: datetime | None = None # The time when the job was last run.
-    run_state_id: JobRunStateId | None = None # The run state ID of the job.
 
-    # Optional:
-    next_run_time: datetime | None = None # The time when the job will next be run.
-    run_state: str | None = None # The run state of the job.
-    user: User | None = None # The user that created the job.
+class Job(Object):
+    # Required
+    file: File
+    name: str
+
+    # Recommended
+    cmd_line: str | None = None
+    created_time: datetime | None = None
+    desc: str | None = None
+    last_run_time: datetime | None = None
+    run_state_id: RunStateId | None = None
+
+    # Optional
+    next_run_time: datetime | None = None
+    run_state: str | None = None
+    user: User | None = None

@@ -1,14 +1,10 @@
-from ocsf.events.discovery import DiscoveryResult
-
+from ocsf.events.discovery.discovery_result import DiscoveryResult
 from ocsf.objects.process import Process
 
 
 class ProcessQuery(DiscoveryResult):
-    """
-    Process Query events report information about running processes.
-    """
+    class_id: int = 5015
+    class_name: str = "Process Query"
 
-    class_uid: int = 5015
-    class_name: str = 'Process Query'
-
+    # Required
     process: Process

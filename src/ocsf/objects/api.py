@@ -1,24 +1,19 @@
-from pydantic import BaseModel
+from ocsf.objects.group import Group
+from ocsf.objects.object import Object
+from ocsf.objects.request import Request
+from ocsf.objects.response import Response
+from ocsf.objects.service import Service
 
-from .service import Service
-from .group import Group
-from .response import ResponseElements
-from .request import RequestElements
 
-
-class API(BaseModel):
-    """
-    The API, or Application Programming Interface, object represents  information
-    pertaining to an API request and response.
-    """
-
+class API(Object):
+    # Required
     operation: str
 
-    # Recommended:
-    request: RequestElements | None = None # Details pertaining to the API request.
-    response: ResponseElements | None = None # Details pertaining to the API response.
+    # Recommended
+    request: Request | None = None
+    response: Response | None = None
 
-    # Optional:
-    group: Group | None = None # The information pertaining to the API group.
-    service: Service | None = None # The information pertaining to the API service.
-    version: str | None = None # The version of the API service.
+    # Optional
+    group: Group | None = None
+    service: Service | None = None
+    version: str | None = None

@@ -1,37 +1,61 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from pydantic import IPvAnyAddress
+from pydantic import IPvAnyAddress, model_validator
 from pydantic_extra_types.mac_address import MacAddress
 
-from ._entity import Entity
+from ocsf.objects._entity import Entity
+from ocsf.objects.port_info import PortInfo
 
-class NetworkInterfaceTypeId(Enum):
-    """
-    The network interface type identifier.
-    """
-    Unknown: int = 0
-    Wired: int = 1
-    Wireless: int = 2
-    Mobile: int = 3
-    Tunnel: int = 4
-    Other: int = 99
+
+class TypeId(Enum):
+    UNKNOWN = 0
+    WIRED = 1
+    WIRELESS = 2
+    MOBILE = 3
+    TUNNEL = 4
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "WIRED": "Wired",
+            "WIRELESS": "Wireless",
+            "MOBILE": "Mobile",
+            "TUNNEL": "Tunnel",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class NetworkInterface(Entity):
-    """
-    The Network Interface object describes the type and associated attributes of a
-    network interface.
-    """
+    # Recommended
+    hostname: str | None = None
+    ip: IPvAnyAddress | None = None
+    mac: MacAddress | None = None
+    name: str | None = None
+    type_id: TypeId | None = None
 
-    type_id: NetworkInterfaceTypeId # The network interface type identifier.
-
-    # Recommended:
-    hostname: str | None = None # The hostname associated with the network interface.
-    ip: IPvAnyAddress | None = None # The IP address associated with the network interface.
-    mac: MacAddress | None = None # The MAC address of the network interface.
-
-    # Optional:
-    name: str | None = None # The name of the network interface.
+    # Optional
     namespace: str | None = None
+    open_ports: list[PortInfo] | None = None
     subnet_prefix: int | None = None
-    type: str | None = None # The type of network interface.
-    uid: str | None = None # The unique identifier for the network interface.
+    type_: str | None = None
+    uid: str | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["ip", "mac", "name", "hostname", "uid"]):
+            raise ValueError("At least one of `ip`, `mac`, `name`, `hostname`, `uid` must be provided")
+        return self

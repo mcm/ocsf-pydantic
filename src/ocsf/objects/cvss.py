@@ -1,40 +1,49 @@
-from .metric import Metric
+from enum import Enum, property as enum_property
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import AnyUrl
 
-class CVSSScore(BaseModel):
-    """
-    The Common Vulnerability Scoring System (https://www.first.org/cvss/) object provides
-    a way to capture the principal characteristics of a vulnerability and produce a numerical
-    score reflecting its severity.
-    """
+from ocsf.objects.metric import Metric
+from ocsf.objects.object import Object
 
-    base_score: float # The CVSS base score. For example: `9.1`.
-    version: str # The CVSS version. For example: `3.1`.
 
-    # Recommended:
-    depth: str | None = None
-    overall_score: float | None = None # The CVSS overall score, impacted by base, temporal, and
-                                       # environmental metrics. For example: `9.1`.
+class Depth(Enum):
+    BASE = "Base"
+    ENVIRONMENTAL = "Environmental"
+    TEMPORAL = "Temporal"
 
-    # Optional:
-    metrics: list[Metric] | None = None # The Common Vulnerability Scoring System metrics. This
-                                        # attribute contains information on the CVE's impact. If the
-                                        # CVE has been analyzed, this attribute will contain any CVSSv2
-                                        # or CVSSv3 information associated with the vulnerability. For
-                                        # example: `{ {"Access Vector", "Network"}, {"Access
-                                        # Complexity", "Low"}, ...}`.
-    severity: str | None = None # The Common Vulnerability Scoring System (CVSS) Qualitative
-                                # Severity Rating.
-                                # A textual representation of the numeric score
-                                # CVSS v2.0:
-                                #   * Low (0.0 – 3.9)
-                                #   * Medium (4.0 – 6.9)
-                                #   * High (7.0 – 10.0)
-                                # CVSS v3.0:
-                                #   * None (0.0)
-                                #   * Low (0.1 - 3.9)
-                                #   * Medium (4.0 - 6.9)
-                                #   * High (7.0 - 8.9)
-                                #   * Critical (9.0 - 10.0)
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return Depth[obj]
+        else:
+            return Depth(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "BASE": "Base",
+            "ENVIRONMENTAL": "Environmental",
+            "TEMPORAL": "Temporal",
+        }
+        return name_map[super().name]
+
+
+class Cvss(Object):
+    # Required
+    base_score: float
+    version: str
+
+    # Recommended
+    depth: Depth | None = None
+    overall_score: float | None = None
+    vendor_name: str | None = None
+
+    # Optional
+    metrics: list[Metric] | None = None
+    severity: str | None = None
+    src_url: AnyUrl | None = None
     vector_string: str | None = None

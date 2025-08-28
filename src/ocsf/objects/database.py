@@ -1,44 +1,70 @@
 from datetime import datetime
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any, cast
 
-from .data_classification import DataClassification
+from pydantic import create_model
 
-from ._entity import Entity
+from ocsf.objects._entity import Entity
+from ocsf.objects.group import Group
+from ocsf.profiles.data_classification import DataClassification
 
-from .group import Group
+
+class TypeId(Enum):
+    UNKNOWN = 0
+    RELATIONAL = 1
+    NETWORK = 2
+    OBJECT_ORIENTED = 3
+    CENTRALIZED = 4
+    OPERATIONAL = 5
+    NOSQL = 6
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "RELATIONAL": "Relational",
+            "NETWORK": "Network",
+            "OBJECT_ORIENTED": "Object Oriented",
+            "CENTRALIZED": "Centralized",
+            "OPERATIONAL": "Operational",
+            "NOSQL": "NoSQL",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
 
-class DatabaseTypeId(Enum):
-    """
-    The normalized identifier of the database type.
-    """
-    Unknown: int = 0
-    Relational: int = 1
-    Network: int = 2
-    Object_Oriented: int = 3
-    Centralized: int = 4
-    Operational: int = 5
-    Nosql: int = 6
-    Other: int = 99
+class Database(Entity):
+    # Required
+    type_id: TypeId
 
-class Database(Entity, DataClassification):
-    """
-    The database object is used for databases which are typically datastore services
-    that contain an organized collection of structured and unstructured data or a
-    types of data.
-    """
+    # Recommended
+    name: str | None = None
+    type_: str | None = None
+    uid: str | None = None
 
-    type_id: DatabaseTypeId # The normalized identifier of the database type.
+    # Optional
+    created_time: datetime | None = None
+    desc: str | None = None
+    groups: list[Group] | None = None
+    modified_time: datetime | None = None
+    size: int | None = None
 
-    # Recommended:
-    type: str | None = None # The database type.
-
-    # Optional:
-    created_time: datetime | None = None # The time when the database was known to have been created.
-    modified_time: datetime | None = None # The most recent time when any changes, updates, or
-                                          # modifications were made within the database.
-    desc: str | None = None # The description of the database.
-    size: int | None = None # The size of the database in bytes.
-    groups: list[Group] | None = None # The group names to which the database belongs.
-    name: str | None = None # The database name, ordinarily as assigned by a database administrator.
-    uid: str | None = None # The unique identifier of the database.
+    @classmethod
+    def with_profile(cls, profile: str) -> type["Database"]:
+        if profile == "data_classification":
+            return cast(
+                type[Database],
+                create_model("DatabaseWithDataClassification", __base__=(Database, DataClassification)),
+            )
+        raise ValueError(f"Profile '{profile}' not available for Database")

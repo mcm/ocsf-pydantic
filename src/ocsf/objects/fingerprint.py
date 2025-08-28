@@ -1,39 +1,70 @@
-from enum import Enum
-from pydantic import BaseModel
+from enum import Enum, property as enum_property
+from typing import Any
 
-class FingerprintAlgorithmId(Enum):
-    """
-    The identifier of the normalized hash algorithm, which was used to create the
-    digital fingerprint.
-    """
-    Unknown: int = 0
-    MD5: int = 1 # MD5 message-digest algorithm producing a 128-bit (16-byte) hash value.
-    SHA1: int = 2 # Secure Hash Algorithm 1 producing a 160-bit (20-byte) hash value.
-    SHA256: int = 3 # Secure Hash Algorithm 2 producing a 256-bit (32-byte) hash value.
-    SHA512: int = 4 # Secure Hash Algorithm 2 producing a 512-bit (64-byte) hash value.
-    CTPH: int = 5 # The ssdeep generated fuzzy checksum. Also known as Context Triggered
-                  # Piecewise Hash (CTPH).
-    TLSH: int = 6 # The TLSH fuzzy hashing algorithm.
-    QuickXorHash: int = 7 # Microsoft simple non-cryptographic hash algorithm that works
-                          # by XORing the bytes in a circular-shifting fashion.
-    Other: int = 99
-
-class Fingerprint(BaseModel):
-    """
-    The Fingerprint object provides detailed information about a digital
-    fingerprint, which is a compact representation of data used to identify a longer
-    piece of information, such as a public key or file content. It contains the
-    algorithm and value of the fingerprint, enabling efficient and reliable
-    identification of the associated data.
-    """
-
-    algorithm_id: FingerprintAlgorithmId # The identifier of the normalized hash
-                                         # algorithm, which was used to create the
-                                         # digital fingerprint.
-    value: str # The digital fingerprint value.
+from ocsf.objects.object import Object
 
 
-    # Optional:
-    algorithm: str | None = None # The hash algorithm used to create the digital fingerprint,
-                                 # normalized to the caption of 'algorithm_id'. In the case of 'Other',
-                                 # it is defined by the event source.
+class AlgorithmId(Enum):
+    UNKNOWN = 0
+    MD5 = 1
+    SHA_1 = 2
+    SHA_256 = 3
+    SHA_512 = 4
+    CTPH = 5
+    TLSH = 6
+    QUICKXORHASH = 7
+    SHA_224 = 8
+    SHA_384 = 9
+    SHA_512_224 = 10
+    SHA_512_256 = 11
+    SHA3_224 = 12
+    SHA3_256 = 13
+    SHA3_384 = 14
+    SHA3_512 = 15
+    XXHASH_H3_64_BIT = 16
+    XXHASH_H3_128_BIT = 17
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return AlgorithmId[obj]
+        else:
+            return AlgorithmId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "MD5": "MD5",
+            "SHA_1": "SHA-1",
+            "SHA_256": "SHA-256",
+            "SHA_512": "SHA-512",
+            "CTPH": "CTPH",
+            "TLSH": "TLSH",
+            "QUICKXORHASH": "quickXorHash",
+            "SHA_224": "SHA-224",
+            "SHA_384": "SHA-384",
+            "SHA_512_224": "SHA-512/224",
+            "SHA_512_256": "SHA-512/256",
+            "SHA3_224": "SHA3-224",
+            "SHA3_256": "SHA3-256",
+            "SHA3_384": "SHA3-384",
+            "SHA3_512": "SHA3-512",
+            "XXHASH_H3_64_BIT": "xxHash H3 64-bit",
+            "XXHASH_H3_128_BIT": "xxHash H3 128-bit",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class Fingerprint(Object):
+    # Required
+    algorithm_id: AlgorithmId
+    value: str
+
+    # Optional
+    algorithm: str | None = None

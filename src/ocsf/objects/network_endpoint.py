@@ -1,29 +1,100 @@
-from pydantic.networks import IPvAnyAddress
+from enum import Enum, property as enum_property
+from typing import Annotated, Any, TYPE_CHECKING
 
-from .autonomous_system import AutonomousSystem
-from .endpoint import Endpoint, EndpointTypeId
+from annotated_types import Ge, Lt
+from pydantic import IPvAnyAddress, model_validator
+
+from ocsf.objects.autonomous_system import AutonomousSystem
+from ocsf.objects.endpoint import Endpoint
+
+if TYPE_CHECKING:
+    from ocsf.objects.network_proxy import NetworkProxy
+
+
+class TypeId(Enum):
+    UNKNOWN = 0
+    SERVER = 1
+    DESKTOP = 2
+    LAPTOP = 3
+    TABLET = 4
+    MOBILE = 5
+    VIRTUAL = 6
+    IOT = 7
+    BROWSER = 8
+    FIREWALL = 9
+    SWITCH = 10
+    HUB = 11
+    ROUTER = 12
+    IDS = 13
+    IPS = 14
+    LOAD_BALANCER = 15
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "SERVER": "Server",
+            "DESKTOP": "Desktop",
+            "LAPTOP": "Laptop",
+            "TABLET": "Tablet",
+            "MOBILE": "Mobile",
+            "VIRTUAL": "Virtual",
+            "IOT": "IOT",
+            "BROWSER": "Browser",
+            "FIREWALL": "Firewall",
+            "SWITCH": "Switch",
+            "HUB": "Hub",
+            "ROUTER": "Router",
+            "IDS": "IDS",
+            "IPS": "IPS",
+            "LOAD_BALANCER": "Load Balancer",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class NetworkEndpoint(Endpoint):
-    """
-    The Network Endpoint object describes characteristics of a network endpoint.
-    These can be a source or destination of a network connection.
-    """
-
-    # Recommended:
-    port: int | None = None # The port used for communication within the network connection.
+    # Recommended
+    port: Annotated[int, Ge(0), Lt(65536)] | None = None
     svc_name: str | None = None
+    type_id: TypeId | None = None
 
-    # Optional:
+    # Optional
     autonomous_system: AutonomousSystem | None = None
     intermediate_ips: list[IPvAnyAddress] | None = None
-    proxy_endpoint: 'NetworkProxy | None' = None # The network proxy information pertaining to a specific
-                                               # endpoint. This can be used to describe information
-                                               # pertaining to network address translation (NAT).
-    type: str | None = None # The network endpoint type. For example: `unknown`,
-                            # `server`, `desktop`, `laptop`,
-                            # `tablet`, `mobile`, `virtual`,
-                            # `browser`, or `other`.
-    type_id: EndpointTypeId | None = None # The network endpoint type ID.
+    isp: str | None = None
+    isp_org: str | None = None
+    proxy_endpoint: "NetworkProxy | None" = None
+    type_: str | None = None
 
-class NetworkProxy(NetworkEndpoint):
-    pass
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(
+            getattr(self, field) is None
+            for field in [
+                "ip",
+                "uid",
+                "name",
+                "hostname",
+                "svc_name",
+                "instance_uid",
+                "interface_uid",
+                "interface_name",
+                "domain",
+            ]
+        ):
+            raise ValueError(
+                "At least one of `ip`, `uid`, `name`, `hostname`, `svc_name`, `instance_uid`, `interface_uid`, `interface_name`, `domain` must be provided"
+            )
+        return self

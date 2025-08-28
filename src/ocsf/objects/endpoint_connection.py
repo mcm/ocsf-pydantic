@@ -1,13 +1,16 @@
-from .network_endpoint import NetworkEndpoint
+from pydantic import model_validator
 
-from pydantic import BaseModel
+from ocsf.objects.network_endpoint import NetworkEndpoint
+from ocsf.objects.object import Object
 
-class EndpointConnection(BaseModel):
-    """
-    The Endpoint Connection object contains information detailing a connection
-    attempt to an endpoint.
-    """
 
-    # Recommended:
-    code: int | None = None # A numerical response status code providing details about the connection.
-    network_endpoint: NetworkEndpoint | None = None # Provides characteristics of the network endpoint.
+class EndpointConnection(Object):
+    # Recommended
+    code: int | None = None
+    network_endpoint: NetworkEndpoint | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["network_endpoint", "code"]):
+            raise ValueError("At least one of `network_endpoint`, `code` must be provided")
+        return self

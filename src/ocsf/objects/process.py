@@ -1,50 +1,81 @@
 from datetime import datetime
+from enum import Enum, property as enum_property
+from typing import Any, cast
 
-from enum import Enum
+from pydantic import create_model, model_validator
 
-from ._entity import Entity
+from ocsf.objects.environment_variable import EnvironmentVariable
+from ocsf.objects.file import File
+from ocsf.objects.process_entity import ProcessEntity
+from ocsf.objects.session import Session
+from ocsf.objects.user import User
+from ocsf.profiles.container import Container
 
-from .container import Container
-from .user import User
-from .file import File
-from .session import Session
+
+class IntegrityId(Enum):
+    UNKNOWN = 0
+    UNTRUSTED = 1
+    LOW = 2
+    MEDIUM = 3
+    HIGH = 4
+    SYSTEM = 5
+    PROTECTED = 6
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return IntegrityId[obj]
+        else:
+            return IntegrityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "UNTRUSTED": "Untrusted",
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "SYSTEM": "System",
+            "PROTECTED": "Protected",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
 
-class ProcessIntegrityId(Enum):
-    Unknown: int = 0
-    Untrusted: int = 1
-    Low: int = 2
-    Medium: int = 3
-    High: int = 4
-    System: int = 5
-    Protected: int = 6
-    Other: int = 99
+class Process(ProcessEntity):
+    # Recommended
+    file: File | None = None
+    parent_process: "Process | None" = None
+    user: User | None = None
 
-class Process(Entity, Container):
-    """
-    The Process object describes a running instance of a launched program
-    """
-
-    # Recommended:
-    cmd_line: str | None = None
-    created_time: datetime | None = None # The time when the process was created/started.
-    file: File | None = None # The process file object.
-    parent_process: 'Process | None' = None
-    pid: int | None = None
-    user: User | None = None # The user under which this process is running.
-
-    # Optional:
+    # Optional
+    ancestry: list[ProcessEntity] | None = None
+    environment_variables: list[EnvironmentVariable] | None = None
     integrity: str | None = None
-    integrity_id: ProcessIntegrityId | None = None
+    integrity_id: IntegrityId | None = None
     lineage: list[str] | None = None
     loaded_modules: list[str] | None = None
-    name: str | None = None # The friendly name of the process, for example: `Notepad++`.
+    ptid: int | None = None
     sandbox: str | None = None
-    session: Session | None = None # The user session under which this process is running.
-    terminated_time: datetime | None = None # The time when the process was terminated.
+    session: Session | None = None
+    terminated_time: datetime | None = None
     tid: int | None = None
-    uid: str | None = None # A unique identifier for this process assigned by the producer (tool).
-                           # Facilitates correlation of a process event with other events for that
-                           # process.
-    xattributes: object | None = None # An unordered collection of zero or more name/value pairs that
-                                      # represent a process extended attribute.
+    working_directory: str | None = None
+    xattributes: dict[str, Any] | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["pid", "uid", "cpid"]):
+            raise ValueError("At least one of `pid`, `uid`, `cpid` must be provided")
+        return self
+
+    @classmethod
+    def with_profile(cls, profile: str) -> type["Process"]:
+        if profile == "container":
+            return cast(type[Process], create_model("ProcessWithContainer", __base__=(Process, Container)))
+        raise ValueError(f"Profile '{profile}' not available for Process")

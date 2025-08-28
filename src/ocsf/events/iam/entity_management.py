@@ -1,34 +1,71 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from ocsf.events.iam import IAM
-
-from ocsf.objects.actor import Actor
+from ocsf.events.iam.iam import IAM
 from ocsf.objects.managed_entity import ManagedEntity
 
 
-class EntityManagementActivityId(Enum):
-    Create: int = 1
-    Read: int = 2
-    Update: int = 3
-    Delete: int = 4
+class ActivityId(Enum):
+    UNKNOWN = 0
+    CREATE = 1
+    READ = 2
+    UPDATE = 3
+    DELETE = 4
+    MOVE = 5
+    ENROLL = 6
+    UNENROLL = 7
+    ENABLE = 8
+    DISABLE = 9
+    ACTIVATE = 10
+    DEACTIVATE = 11
+    SUSPEND = 12
+    RESUME = 13
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "CREATE": "Create",
+            "READ": "Read",
+            "UPDATE": "Update",
+            "DELETE": "Delete",
+            "MOVE": "Move",
+            "ENROLL": "Enroll",
+            "UNENROLL": "Unenroll",
+            "ENABLE": "Enable",
+            "DISABLE": "Disable",
+            "ACTIVATE": "Activate",
+            "DEACTIVATE": "Deactivate",
+            "SUSPEND": "Suspend",
+            "RESUME": "Resume",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class EntityManagement(IAM):
-    """
-    Entity Management events report activity by a managed client, a micro service,
-    or a user at a management console. The activity can be a create, read, update,
-    and delete operation on a managed entity.
-    """
+    class_id: int = 3004
+    class_name: str = "Entity Management"
 
-    class_uid = 3004
-    class_name = 'Entity Management'
-
+    # Required
+    activity_id: ActivityId
     entity: ManagedEntity
 
-    # Recommended:
-    comment: str | None = None # The user provided comment about why the entity was changed.
+    # Recommended
+    comment: str | None = None
     entity_result: ManagedEntity | None = None
 
-    # Optional:
-    activity_id: EntityManagementActivityId | None = None
-    actor: Actor | None = None # Use for when the entity acting upon another entity is a process or
-                               # user.
+    # Optional
+    access_list: list[str] | None = None
+    access_mask: int | None = None

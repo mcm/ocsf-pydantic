@@ -1,29 +1,113 @@
-from ocsf.events.discovery import Discovery
+from enum import Enum, property as enum_property
+from typing import Any
 
+from ocsf.events.discovery.discovery import Discovery
 from ocsf.objects.actor import Actor
 from ocsf.objects.device import Device
 from ocsf.objects.security_state import SecurityState
 
 
+class PrevSecurityLevelId(Enum):
+    UNKNOWN = 0
+    SECURE = 1
+    AT_RISK = 2
+    COMPROMISED = 3
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return PrevSecurityLevelId[obj]
+        else:
+            return PrevSecurityLevelId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "SECURE": "Secure",
+            "AT_RISK": "At Risk",
+            "COMPROMISED": "Compromised",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class SecurityLevelId(Enum):
+    UNKNOWN = 0
+    SECURE = 1
+    AT_RISK = 2
+    COMPROMISED = 3
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return SecurityLevelId[obj]
+        else:
+            return SecurityLevelId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "SECURE": "Secure",
+            "AT_RISK": "At Risk",
+            "COMPROMISED": "Compromised",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class StateId(Enum):
+    UNKNOWN = 0
+    DISABLED = 1
+    ENABLED = 2
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return StateId[obj]
+        else:
+            return StateId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "DISABLED": "Disabled",
+            "ENABLED": "Enabled",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
 class DeviceConfigStateChange(Discovery):
-    """
-    Device Config State Change events report state changes that impact the security
-    of the device.
-    """
+    class_id: int = 5019
+    class_name: str = "Device Config State Change"
 
-    class_uid: int = 5019
-    class_name: str = 'Device Config State Change'
+    # Required
+    device: Device
 
-    device: Device # The device that is impacted by the state change.
-
-    # Recommended:
+    # Recommended
     prev_security_level: str | None = None
-    prev_security_level_id: int | None = None
-    prev_security_states: list[SecurityState] | None = None # The previous security states of the
-                                                            # device.
+    prev_security_level_id: PrevSecurityLevelId | None = None
+    prev_security_states: list[SecurityState] | None = None
     security_level: str | None = None
-    security_level_id: int | None = None
-    security_states: list[SecurityState] | None = None # The current security states of the device.
+    security_level_id: SecurityLevelId | None = None
+    security_states: list[SecurityState] | None = None
+    state_id: StateId | None = None
 
-    # Optional:
+    # Optional
     actor: Actor | None = None
+    state: str | None = None

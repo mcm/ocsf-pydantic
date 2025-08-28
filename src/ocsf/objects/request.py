@@ -1,15 +1,14 @@
-from pydantic import BaseModel, JsonValue
-from .container import Container
+from typing import Any
+
+from ocsf.objects.container import Container
+from ocsf.objects.object import Object
 
 
-class RequestElements(BaseModel):
-    """
-    The Request Elements object describes characteristics of an API request.
-    """
+class Request(Object):
+    # Required
+    uid: str
 
-    uid: str  # The unique request identifier.
-
-    # Optional:
+    # Optional
     containers: list[Container] | None = None
-    data: JsonValue | None = None # The additional data that is associated with the api request.
+    data: dict[str, Any] | None = None
     flags: list[str] | None = None

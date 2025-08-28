@@ -1,24 +1,18 @@
-from pydantic import BaseModel
+from ocsf.objects.account import Account
+from ocsf.objects.object import Object
+from ocsf.objects.organization import Organization
 
-from .account import Account
-from .organization import Organization
 
+class Cloud(Object):
+    # Required
+    provider: str
 
-class Cloud(BaseModel):
-    """
-    The Cloud object contains information about a cloud account such as AWS Account
-    ID, regions, etc.
-    """
+    # Recommended
+    region: str | None = None
 
-    provider: str # The unique name of the Cloud services provider, such as AWS, MS
-                  # Azure, GCP, etc.
-
-    # Recommended:
-    region: str | None = None # The name of the cloud region, as defined by the cloud provider.
-
-    # Optional:
+    # Optional
     account: Account | None = None
+    cloud_partition: str | None = None
     org: Organization | None = None
     project_uid: str | None = None
-    zone: str | None = None # The availability zone in the cloud region, as defined by the cloud
-                            # provider.
+    zone: str | None = None

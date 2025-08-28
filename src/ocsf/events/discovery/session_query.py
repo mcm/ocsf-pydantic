@@ -1,14 +1,10 @@
-from ocsf.events.discovery import DiscoveryResult
-
+from ocsf.events.discovery.discovery_result import DiscoveryResult
 from ocsf.objects.session import Session
 
 
-class UserSessionQuery(DiscoveryResult):
-    """
-    User Session Query events report information about existing user sessions.
-    """
+class SessionQuery(DiscoveryResult):
+    class_id: int = 5017
+    class_name: str = "User Session Query"
 
-    class_uid: int = 5017
-    class_name: str = 'User Session Query'
-
+    # Required
     session: Session

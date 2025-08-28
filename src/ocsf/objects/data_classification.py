@@ -1,51 +1,134 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import AnyUrl, model_validator
 
-from .policy import Policy
+from ocsf.objects.classifier_details import ClassifierDetails
+from ocsf.objects.discovery_details import DiscoveryDetails
+from ocsf.objects.object import Object
+from ocsf.objects.policy import Policy
 
-class DataClassificationCategoryId(Enum):
-    """
-    The normalized identifier of the data classification category.
-    """
-    Unknown: int = 0
-    Personal: int = 1 # Any Personally Identifiable Information (PII), Electronic Personal
-                      # Health Information (ePHI), or similarly personal information.
-                      # E.g., full name, home address, date of birth, etc.
-    Governmental: int = 2 # Any sensitive government identification number related to a
-                          # person or other classified material. E.g., Passport numbers,
-                          # driver license numbers, business identification, taxation
-                          # identifiers, etc.
-    Financial: int = 3 # Any financially-related sensitive information or Cardholder
-                       # Data (CHD). E.g., banking account numbers, credit card numbers,
-                       # International Banking Account Numbers (IBAN), SWIFT codes, etc.
-    Business: int = 4 # Any business-specific sensitive data such as intellectual property,
-                      # trademarks, copyrights, human resource data, Board of Directors
-                      # meeting minutes, and similar.
-    Military_And_Law_Enforcement: int = 5 # Any mission-specific sensitive data for military,
-                                          # law enforcement, or other government agencies such
-                                          # as specifically classified data, weapon systems
-                                          # information, or other planning data.
-    Security: int = 6 # Any sensitive security-related data such as passwords, passkeys,
-                      # IP addresses, API keys, credentials and similar secrets. E.g.,
-                      # AWS Access Secret Key, SaaS API Keys, user passwords, database
-                      # credentials, etc.
-    Other: int = 99
 
-class DataClassification(BaseModel):
-    """
-    The Data Classification object includes information about data classification
-    levels and data category types.
-    """
+class CategoryId(Enum):
+    UNKNOWN = 0
+    PERSONAL = 1
+    GOVERNMENTAL = 2
+    FINANCIAL = 3
+    BUSINESS = 4
+    MILITARY_AND_LAW_ENFORCEMENT = 5
+    SECURITY = 6
+    OTHER = 99
 
-    # Recommended:
-    category_id: DataClassificationCategoryId | None = None # The normalized identifier of the data
-                                                            # classification category.
-    confidentiality_id: int | None = None
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return CategoryId[obj]
+        else:
+            return CategoryId(obj)
 
-    # Optional:
-    category: str | None = None # The name of the data classification category that data matched into,
-                                # e.g. Financial, Personal, Governmental, etc.
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "PERSONAL": "Personal",
+            "GOVERNMENTAL": "Governmental",
+            "FINANCIAL": "Financial",
+            "BUSINESS": "Business",
+            "MILITARY_AND_LAW_ENFORCEMENT": "Military and Law Enforcement",
+            "SECURITY": "Security",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class ConfidentialityId(Enum):
+    UNKNOWN = 0
+    NOT_CONFIDENTIAL = 1
+    CONFIDENTIAL = 2
+    SECRET = 3
+    TOP_SECRET = 4
+    PRIVATE = 5
+    RESTRICTED = 6
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ConfidentialityId[obj]
+        else:
+            return ConfidentialityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "NOT_CONFIDENTIAL": "Not Confidential",
+            "CONFIDENTIAL": "Confidential",
+            "SECRET": "Secret",
+            "TOP_SECRET": "Top Secret",
+            "PRIVATE": "Private",
+            "RESTRICTED": "Restricted",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class StatusId(Enum):
+    UNKNOWN = 0
+    COMPLETE = 1
+    PARTIAL = 2
+    FAIL = 3
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return StatusId[obj]
+        else:
+            return StatusId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "COMPLETE": "Complete",
+            "PARTIAL": "Partial",
+            "FAIL": "Fail",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class DataClassification(Object):
+    # Recommended
+    category_id: CategoryId | None = None
+    classifier_details: ClassifierDetails | None = None
+    confidentiality_id: ConfidentialityId | None = None
+    status: str | None = None
+    status_id: StatusId | None = None
+
+    # Optional
+    category: str | None = None
     confidentiality: str | None = None
-    policy: Policy | None = None # Details about the data policy that governs data handling and
-                                 # security measures related to classification.
+    discovery_details: list[DiscoveryDetails] | None = None
+    policy: Policy | None = None
+    size: int | None = None
+    src_url: AnyUrl | None = None
+    status_details: list[str] | None = None
+    total: int | None = None
+    uid: str | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["category_id", "confidentiality_id"]):
+            raise ValueError("At least one of `category_id`, `confidentiality_id` must be provided")
+        return self

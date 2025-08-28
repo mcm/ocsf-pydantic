@@ -1,18 +1,24 @@
-from ocsf.events.base import BaseEvent, CategoryId
+from typing import Annotated, Literal
 
-from ocsf.objects.http_request import HTTPRequest
+from pydantic import Field
+
+from ocsf.events.base_event import BaseEvent
+from ocsf.objects.actor import Actor
+from ocsf.objects.http_request import HttpRequest
+from ocsf.objects.http_response import HttpResponse
 from ocsf.objects.network_endpoint import NetworkEndpoint
 
+
 class IAM(BaseEvent):
-    """
-    The Identity & Access Management event is a generic event that defines a set of
-    attributes available in the access control events. As a generic event, it could
-    be used to log events that are not otherwise defined by the IAM category.
-    """
-    category_uid: CategoryId = CategoryId.Identity_Access_Management
+    category_name: Annotated[Literal["Identity & Access Management"], Field(frozen=True)] = (
+        "Identity & Access Management"
+    )
+    category_uid: Annotated[Literal[3], Field(frozen=True)] = 3
 
-    # Recommended:
-    src_endpoint: NetworkEndpoint | None = None # Details about the source of the IAM activity.
+    # Recommended
+    actor: Actor | None = None
+    src_endpoint: NetworkEndpoint | None = None
 
-    # Optional:
-    http_request: HTTPRequest | None = None # Details about the underlying HTTP request.
+    # Optional
+    http_request: HttpRequest | None = None
+    http_response: HttpResponse | None = None

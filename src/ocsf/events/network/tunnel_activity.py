@@ -1,61 +1,110 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from ocsf.events.network import Network
+from pydantic import model_validator
 
+from ocsf.events.network.network import Network
 from ocsf.objects.device import Device
-from ocsf.objects.network_connection_info import NetworkConnectionInformation
+from ocsf.objects.network_connection_info import NetworkConnectionInfo
 from ocsf.objects.network_endpoint import NetworkEndpoint
 from ocsf.objects.network_interface import NetworkInterface
 from ocsf.objects.network_traffic import NetworkTraffic
-from ocsf.objects.user import User
 from ocsf.objects.session import Session
+from ocsf.objects.user import User
 
 
-class TunnelActivityActivityId(Enum):
-    Unknown: int = 0 # The event activity is unknown.
-    Open: int = 1 # Open a tunnel.
-    Close: int = 2 # Close a tunnel.
-    Renew: int = 3 # Renew a tunnel.
-    Other: int = 99 # The event activity is not mapped.
-    
-class TunnelActivityTunnelTypeId(Enum):
-    """
-    The normalized tunnel type ID.
-    """
-    Unknown: int = 0
-    Split_Tunnel: int = 1
-    Full_Tunnel: int = 2
-    Other: int = 99
+class ActivityId(Enum):
+    UNKNOWN = 0
+    OPEN = 1
+    CLOSE = 2
+    RENEW = 3
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "OPEN": "Open",
+            "CLOSE": "Close",
+            "RENEW": "Renew",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class TunnelTypeId(Enum):
+    UNKNOWN = 0
+    SPLIT_TUNNEL = 1
+    FULL_TUNNEL = 2
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TunnelTypeId[obj]
+        else:
+            return TunnelTypeId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "SPLIT_TUNNEL": "Split Tunnel",
+            "FULL_TUNNEL": "Full Tunnel",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
 
 class TunnelActivity(Network):
-    """
-    Tunnel Activity events report secure tunnel establishment (such as VPN),
-    teardowns, renewals, and other network tunnel specific actions.
-    """
+    class_id: int = 4014
+    class_name: str = "Tunnel Activity"
 
-    class_uid: int = 4014
-    class_name: str = 'Tunnel Activity'
+    # Required
+    activity_id: ActivityId
 
-    activity_id: TunnelActivityActivityId
+    # Recommended
+    device: Device | None = None
+    dst_endpoint: NetworkEndpoint | None = None
+    session: Session | None = None
+    src_endpoint: NetworkEndpoint | None = None
+    tunnel_interface: NetworkInterface | None = None
+    tunnel_type: str | None = None
+    tunnel_type_id: TunnelTypeId | None = None
+    user: User | None = None
 
-    # Recommended:
-    dst_endpoint: NetworkEndpoint | None = None # The server responding to the tunnel connection.
-    device: Device | None = None # The device that reported the event.
-    src_endpoint: NetworkEndpoint | None = None # The initiator (client) of the tunnel connection.
-    session: Session | None = None # The session associated with the tunnel.
-    tunnel_interface: NetworkInterface | None = None # The information about the virtual tunnel
-                                                     # interface, e.g. `utun0`. This is
-                                                     # usually associated with the private (rfc-1918)
-                                                     # ip of the tunnel.
-    tunnel_type: str | None = None # The tunnel type. Example: `Split` or `Full`.
-    tunnel_type_id: TunnelActivityTunnelTypeId | None = None # The normalized tunnel type ID.
-    user: User | None = None # The user associated with the tunnel activity.
+    # Optional
+    connection_info: NetworkConnectionInfo | None = None
+    protocol_name: str | None = None
+    traffic: NetworkTraffic | None = None
 
-    # Optional:
-    connection_info: NetworkConnectionInformation | None = None # The tunnel connection information.
-    protocol_name: str | None = None # The networking protocol associated with the tunnel. E.g.
-                                     # `IPSec`, `SSL`, `GRE`.
-    traffic: NetworkTraffic | None = None # Traffic refers to the amount of data moving across the
-                                          # tunnel at a given point of time. Ex: `bytes_in`
-                                          # and `bytes_out`.
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(
+            getattr(self, field) is None
+            for field in [
+                "connection_info",
+                "session",
+                "src_endpoint",
+                "traffic",
+                "tunnel_interface",
+                "tunnel_type_id",
+            ]
+        ):
+            raise ValueError(
+                "At least one of `connection_info`, `session`, `src_endpoint`, `traffic`, `tunnel_interface`, `tunnel_type_id` must be provided"
+            )
+        return self

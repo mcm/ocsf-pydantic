@@ -1,16 +1,10 @@
-from pydantic import BaseModel
+from ocsf.objects.object import Object
+from ocsf.objects.policy import Policy
 
-from .policy import Policy
 
-class AuthorizationResult(BaseModel):
-    """
-    The Authorization Result object provides details about the authorization outcome
-    and associated policies related to activity.
-    """
+class Authorization(Object):
+    # Recommended
+    decision: str | None = None
 
-    # Recommended:
-    decision: str | None = None # Authorization Result/outcome, e.g. allowed, denied.
-
-    # Optional:
-    policy: Policy | None = None # Details about the Identity/Access management policies that are
-                                 # applicable.
+    # Optional
+    policy: Policy | None = None

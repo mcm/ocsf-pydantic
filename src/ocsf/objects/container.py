@@ -1,31 +1,32 @@
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import model_validator
 
-from .fingerprint import Fingerprint
-from .image import Image
+from ocsf.objects.fingerprint import Fingerprint
+from ocsf.objects.image import Image
+from ocsf.objects.key_value_object import KeyValueObject
+from ocsf.objects.object import Object
 
-class Container(BaseModel):
-    """
-    The Container object describes an instance of a specific container. A container
-    is a prepackaged, portable system image that runs isolated on an existing system
-    using a container runtime like containerd.
-    """
 
-    # Recommended:
-    name: str | None = None # The container name.
-    image: Image | None = None # The container image used as a template to run the container.
-    uid: str | None = None # The full container unique identifier for this instantiation of the
-                           # container. For example: `ac2ea168264a08f9aaca0dfc82ff3551418dfd22d02b
-                           # 713142a6843caa2f61bf`.
-    size: int | None = None # The size of the container image.
-    hash: Fingerprint | None = None # Commit hash of image created for docker or the SHA256 hash of the
-                                    # container. For example: `13550340a8681c84c861aac2e5b440161c2
-                                    # b33a3e4f302ac680ca5b686de48de`.
+class Container(Object):
+    # Recommended
+    hash: Fingerprint | None = None
+    image: Image | None = None
+    name: str | None = None
+    size: int | None = None
+    uid: str | None = None
 
-    # Optional:
-    runtime: str | None = None
+    # Optional
+    labels: list[str] | None = None
+    network_driver: str | None = None
     orchestrator: str | None = None
     pod_uuid: UUID | None = None
-    tag: str | None = None # The tag used by the container. It can indicate version, format, OS.
-    network_driver: str | None = None
+    runtime: str | None = None
+    tag: str | None = None
+    tags: list[KeyValueObject] | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["uid", "name"]):
+            raise ValueError("At least one of `uid`, `name` must be provided")
+        return self

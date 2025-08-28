@@ -1,23 +1,20 @@
-from ocsf.events.discovery import Discovery
-
+from ocsf.events.discovery.discovery import Discovery
 from ocsf.objects.actor import Actor
+from ocsf.objects.assessment import Assessment
+from ocsf.objects.cis_benchmark_result import CisBenchmarkResult
 from ocsf.objects.device import Device
-from ocsf.objects.cis_benchmark_result import CISBenchmarkResult
 
 
-class DeviceConfigState(Discovery):
-    """
-    Device Config State events report device configuration data and CIS Benchmark
-    results.
-    """
+class ConfigState(Discovery):
+    class_id: int = 5002
+    class_name: str = "Device Config State"
 
-    class_uid: int = 5002
-    class_name: str = 'Device Config State'
+    # Required
+    device: Device
 
-    device: Device # The device that is being discovered by an inventory process.
+    # Recommended
+    cis_benchmark_result: CisBenchmarkResult | None = None
 
-    # Recommended:
-    cis_benchmark_result: CISBenchmarkResult | None = None
-
-    # Optional:
+    # Optional
     actor: Actor | None = None
+    assessments: list[Assessment] | None = None

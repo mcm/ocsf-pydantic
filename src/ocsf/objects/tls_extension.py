@@ -1,47 +1,80 @@
-from pydantic import BaseModel
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
+
+from ocsf.objects.object import Object
 
 
-class TLSExtensionTypeId(Enum):
-    """
-    The TLS extension type identifier. See <a target='_blank'
-    href='https://datatracker.ietf.org/doc/html/rfc8446#page-35'>The Transport Layer
-    Security (TLS) extension page</a>.
-    """
-    Server_name: int = 0 # The Server Name Indication extension.
-    Maximum_fragment_length: int = 1 # The Maximum Fragment Length Negotiation extension.
-    Status_request: int = 5 # The Certificate Status Request extension.
-    Supported_groups: int = 10 # The Supported Groups extension.
-    Signature_algorithms: int = 13 # The Signature Algorithms extension.
-    Use_srtp: int = 14 # The Use SRTP data protection extension.
-    Heartbeat: int = 15 # The Heartbeat extension.
-    Application_layer_protocol_negotiation: int = 16 # The Application-Layer Protocol Negotiation extension.
-    Signed_certificate_timestamp: int = 18 # The Signed Certificate Timestamp extension.
-    Client_certificate_type: int = 19 # The Client Certificate Type extension.
-    Server_certificate_type: int = 20 # The Server Certificate Type extension.
-    Padding: int = 21 # The Padding extension.
-    Pre_shared_key: int = 41 # The Pre Shared Key extension.
-    Early_data: int = 42 # The Early Data extension.
-    Supported_versions: int = 43 # The Supported Versions extension.
-    Cookie: int = 44 # The Cookie extension.
-    Psk_key_exchange_modes: int = 45 # The Pre-Shared Key Exchange Modes extension.
-    Certificate_authorities: int = 47 # The Certificate Authorities extension.
-    Oid_filters: int = 48 # The OID Filters extension.
-    Post_handshake_auth: int = 49 # The Post-Handshake Client Authentication extension.
-    Signature_algorithms_cert: int = 50 # The Signature Algorithms extension.
-    Key_share: int = 51 # The Key Share extension.
+class TypeId(Enum):
+    SERVER_NAME = 0
+    MAXIMUM_FRAGMENT_LENGTH = 1
+    STATUS_REQUEST = 5
+    SUPPORTED_GROUPS = 10
+    SIGNATURE_ALGORITHMS = 13
+    USE_SRTP = 14
+    HEARTBEAT = 15
+    APPLICATION_LAYER_PROTOCOL_NEGOTIATION = 16
+    SIGNED_CERTIFICATE_TIMESTAMP = 18
+    CLIENT_CERTIFICATE_TYPE = 19
+    SERVER_CERTIFICATE_TYPE = 20
+    PADDING = 21
+    PRE_SHARED_KEY = 41
+    EARLY_DATA = 42
+    SUPPORTED_VERSIONS = 43
+    COOKIE = 44
+    PSK_KEY_EXCHANGE_MODES = 45
+    CERTIFICATE_AUTHORITIES = 47
+    OID_FILTERS = 48
+    POST_HANDSHAKE_AUTH = 49
+    SIGNATURE_ALGORITHMS_CERT = 50
+    KEY_SHARE = 51
+    OTHER = 99
 
-class TLSExtension(BaseModel):
-    """
-    The TLS Extension object describes additional attributes that extend the base
-    Transport Layer Security (TLS) object.
-    """
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return TypeId[obj]
+        else:
+            return TypeId(obj)
 
-    type_id: TLSExtensionTypeId # The TLS extension type identifier
-                                # See: https://datatracker.ietf.org/doc/html/rfc8446#page-35
+    @enum_property
+    def name(self):
+        name_map = {
+            "SERVER_NAME": "server_name",
+            "MAXIMUM_FRAGMENT_LENGTH": "maximum_fragment_length",
+            "STATUS_REQUEST": "status_request",
+            "SUPPORTED_GROUPS": "supported_groups",
+            "SIGNATURE_ALGORITHMS": "signature_algorithms",
+            "USE_SRTP": "use_srtp",
+            "HEARTBEAT": "heartbeat",
+            "APPLICATION_LAYER_PROTOCOL_NEGOTIATION": "application_layer_protocol_negotiation",
+            "SIGNED_CERTIFICATE_TIMESTAMP": "signed_certificate_timestamp",
+            "CLIENT_CERTIFICATE_TYPE": "client_certificate_type",
+            "SERVER_CERTIFICATE_TYPE": "server_certificate_type",
+            "PADDING": "padding",
+            "PRE_SHARED_KEY": "pre_shared_key",
+            "EARLY_DATA": "early_data",
+            "SUPPORTED_VERSIONS": "supported_versions",
+            "COOKIE": "cookie",
+            "PSK_KEY_EXCHANGE_MODES": "psk_key_exchange_modes",
+            "CERTIFICATE_AUTHORITIES": "certificate_authorities",
+            "OID_FILTERS": "oid_filters",
+            "POST_HANDSHAKE_AUTH": "post_handshake_auth",
+            "SIGNATURE_ALGORITHMS_CERT": "signature_algorithms_cert",
+            "KEY_SHARE": "key_share",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
 
-    # Recommended:
-    data: dict | None = None # The data contains information specific to the particular extension type.
 
-    # Optional:
-    type: str | None = None # The TLS extension type. For example: `Server Name`.
+class TLSExtension(Object):
+    # Required
+    type_id: TypeId
+
+    # Recommended
+    data: dict[str, Any] | None = None
+
+    # Optional
+    type_: str | None = None

@@ -1,16 +1,61 @@
-from ._entity import Entity
+from enum import Enum, property as enum_property
+from typing import Any
+
+from pydantic import AnyUrl
+
+from ocsf.objects._entity import Entity
+from ocsf.objects.auth_factor import AuthFactor
+from ocsf.objects.fingerprint import Fingerprint
+from ocsf.objects.scim import Scim
+from ocsf.objects.sso import Sso
 
 
-class IdentityProvider(Entity):
-    """
-    The Identity Provider object contains detailed information about a provider
-    responsible for creating, maintaining, and managing identity information while
-    offering authentication services to applications. An Identity Provider (IdP)
-    serves as a trusted authority that verifies the identity of users and issues
-    authentication tokens or assertions to enable secure access to applications or
-    services.
-    """
+class StateId(Enum):
+    UNKNOWN = 0
+    ACTIVE = 1
+    SUSPENDED = 2
+    DEPRECATED = 3
+    DELETED = 4
+    OTHER = 99
 
-    # Optional:
-    name: str | None = None # The name of the identity provider.
-    uid: str | None = None # The unique identifier of the identity provider.
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return StateId[obj]
+        else:
+            return StateId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "ACTIVE": "Active",
+            "SUSPENDED": "Suspended",
+            "DEPRECATED": "Deprecated",
+            "DELETED": "Deleted",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class Idp(Entity):
+    # Recommended
+    name: str | None = None
+    uid: str | None = None
+
+    # Optional
+    auth_factors: list[AuthFactor] | None = None
+    domain: str | None = None
+    fingerprint: Fingerprint | None = None
+    has_mfa: bool | None = None
+    issuer: str | None = None
+    protocol_name: str | None = None
+    scim: Scim | None = None
+    sso: Sso | None = None
+    state: str | None = None
+    state_id: StateId | None = None
+    tenant_uid: str | None = None
+    url_string: AnyUrl | None = None

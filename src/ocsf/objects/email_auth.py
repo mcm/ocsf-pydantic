@@ -1,15 +1,10 @@
-from pydantic import BaseModel
+from ocsf.objects.object import Object
 
-class EmailAuthentication(BaseModel):
-    """
-    The Email Authentication object describes the Sender Policy Framework (SPF),
-    DomainKeys Identified Mail (DKIM) and Domain-based Message Authentication,
-    Reporting and Conformance (DMARC) attributes of an email.
-    """
 
-    # Recommended:
-    dkim_domain: str | None = None
+class EmailAuth(Object):
+    # Recommended
     dkim: str | None = None
+    dkim_domain: str | None = None
     dkim_signature: str | None = None
     dmarc: str | None = None
     dmarc_override: str | None = None

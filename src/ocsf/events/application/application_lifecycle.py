@@ -1,26 +1,53 @@
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Any
 
-from .application import Application
+from ocsf.events.application.application import Application
 from ocsf.objects.product import Product
 
-class ApplicationLifecycleActivityId(Enum):
-    Install: int = 1
-    Remove: int = 2
-    Start: int = 3
-    Stop: int = 4
-    Restart: int = 5
-    Enable: int = 6
-    Disable: int = 7
-    Update: int = 8
+
+class ActivityId(Enum):
+    UNKNOWN = 0
+    INSTALL = 1
+    REMOVE = 2
+    START = 3
+    STOP = 4
+    RESTART = 5
+    ENABLE = 6
+    DISABLE = 7
+    UPDATE = 8
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "INSTALL": "Install",
+            "REMOVE": "Remove",
+            "START": "Start",
+            "STOP": "Stop",
+            "RESTART": "Restart",
+            "ENABLE": "Enable",
+            "DISABLE": "Disable",
+            "UPDATE": "Update",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class ApplicationLifecycle(Application):
-    """
-    Application Lifecycle events report installation, removal, start, stop of an
-    application or service.
-    """
-    class_uid: int = 6002
-    class_name: str = 'Application Lifecycle'
+    class_id: int = 6002
+    class_name: str = "Application Lifecycle"
 
-    activity_id: ApplicationLifecycleActivityId | None = None
-    app: Product | None = None # The application that was affected by the lifecycle event.  This also
-                               # applies to self-updating application systems.
+    # Required
+    activity_id: ActivityId
+    app: Product

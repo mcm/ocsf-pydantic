@@ -1,23 +1,21 @@
-from .user import User
+from ocsf.objects.file import File
+from ocsf.objects.object import Object
+from ocsf.objects.remediation import Remediation
+from ocsf.objects.rule import Rule
+from ocsf.objects.user import User
 
-from .remediation import Remediation
 
-from pydantic import BaseModel
-from .file import File
+class AffectedCode(Object):
+    # Required
+    file: File
 
-
-class AffectedCode(BaseModel):
-    """
-    The Affected Code object describes details about a code block identified as
-    vulnerable.
-    """
-
-    file: File # Details about the file that contains the affected code block.
-
-    # Recommended:
+    # Recommended
+    end_column: int | None = None
     end_line: int | None = None
+    rule: Rule | None = None
+    start_column: int | None = None
     start_line: int | None = None
 
-    # Optional:
-    owner: User | None = None # Details about the user that owns the affected file.
+    # Optional
+    owner: User | None = None
     remediation: Remediation | None = None

@@ -1,57 +1,134 @@
 from datetime import datetime
-from enum import Enum
+from enum import Enum, property as enum_property
+from typing import Annotated, Any, Literal, cast
 
-from ocsf.events.base import BaseEvent, CategoryId
+from pydantic import Field, create_model
 
+from ocsf.events.base_event import BaseEvent
 from ocsf.objects.device import Device
-from ocsf.objects.finding_info import FindingInformation
+from ocsf.objects.finding_info import FindingInfo
+from ocsf.objects.vendor_attributes import VendorAttributes
+from ocsf.profiles.incident import Incident
 
 
-class FindingActivityId(Enum):
-    """
-    The normalized identifier of the finding activity.
-    """
-    Create: int = 1
-    Update: int = 2
-    Close: int = 3
+class ActivityId(Enum):
+    UNKNOWN = 0
+    CREATE = 1
+    UPDATE = 2
+    CLOSE = 3
+    OTHER = 99
 
-class FindingStatusId(Enum):
-    """
-    The normalized status identifier of the Finding, set by the consumer.
-    """
-    New: int = 1 # The Finding is new and yet to be reviewed.
-    In_Progress: int = 2 # The Finding is under review.
-    Suppressed: int = 3 # The Finding was reviewed, determined to be benign or
-                        # a false positive and is now suppressed.
-    Resolved: int = 4 # The Finding was reviewed, remediated and is now considered resolved.
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ActivityId[obj]
+        else:
+            return ActivityId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "CREATE": "Create",
+            "UPDATE": "Update",
+            "CLOSE": "Close",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class ConfidenceId(Enum):
+    UNKNOWN = 0
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return ConfidenceId[obj]
+        else:
+            return ConfidenceId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class StatusId(Enum):
+    UNKNOWN = 0
+    NEW = 1
+    IN_PROGRESS = 2
+    SUPPRESSED = 3
+    RESOLVED = 4
+    ARCHIVED = 5
+    DELETED = 6
+    OTHER = 99
+
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return StatusId[obj]
+        else:
+            return StatusId(obj)
+
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "NEW": "New",
+            "IN_PROGRESS": "In Progress",
+            "SUPPRESSED": "Suppressed",
+            "RESOLVED": "Resolved",
+            "ARCHIVED": "Archived",
+            "DELETED": "Deleted",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
 
 class Finding(BaseEvent):
-    """
-    The Finding event is a generic event that defines a set of attributes available
-    in the Findings category.
-    """
+    category_name: Annotated[Literal["Findings"], Field(frozen=True)] = "Findings"
+    category_uid: Annotated[Literal[2], Field(frozen=True)] = 2
 
-    finding_info: FindingInformation
+    # Required
+    activity_id: ActivityId
+    finding_info: FindingInfo
 
-    category_uid: CategoryId = CategoryId.Findings
+    # Recommended
+    confidence_id: ConfidenceId | None = None
+    status_id: StatusId | None = None
 
-    # Recommended:
-    confidence_id: int | None = None
-    device: Device | None = None # Describes the affected device/host. It can be used in conjunction
-                                 # with `Affected Resource(s)`. e.g. Specific details
-                                 # about an AWS EC2 instance, that is affected by the Finding.
-    status_id: FindingStatusId | None = None # The normalized status identifier of the Finding, set by
-                                             # the consumer.
-
-    # Optional:
-    activity_name: str | None = None # The finding activity name, as defined by the
-                                     # `activity_id`.
-    activity_id: FindingActivityId | None = None # The normalized identifier of the finding activity.
-    comment: str | None = None # A user provided comment about the finding.
+    # Optional
+    activity_name: str | None = None
+    comment: str | None = None
     confidence: str | None = None
     confidence_score: int | None = None
-    end_time: datetime | None = None # The time of the most recent event included in the finding.
-    start_time: datetime | None = None # The time of the least recent event included in the finding.
-    status: str | None = None # The normalized status of the Finding set by the consumer normalized to
-                              # the caption of the status_id value. In the case of 'Other', it is
-                              # defined by the source.
+    device: Device | None = None
+    end_time: datetime | None = None
+    start_time: datetime | None = None
+    status: str | None = None
+    vendor_attributes: VendorAttributes | None = None
+
+    @classmethod
+    def with_profile(cls, profile: str) -> type["Finding"]:
+        if profile == "incident":
+            return cast(type[Finding], create_model("FindingWithIncident", __base__=(Finding, Incident)))
+        raise ValueError(f"Profile '{profile}' not available for Finding")

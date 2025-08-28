@@ -1,48 +1,133 @@
-from pydantic import BaseModel
+from enum import Enum, property as enum_property
+from typing import Any
 
-from .network_endpoint import NetworkEndpoint
-from .process import Process
-from .file import File
-from .database import Database
-from .container import Container
-from .dns_query import DNSQuery
-from .network_connection_info import NetworkConnectionInformation
-from .api import API
-from .actor import Actor
-from .databucket import Databucket
+from pydantic import model_validator
+
+from ocsf.objects._entity import Entity
+from ocsf.objects.actor import Actor
+from ocsf.objects.api import API
+from ocsf.objects.container import Container
+from ocsf.objects.database import Database
+from ocsf.objects.databucket import Databucket
+from ocsf.objects.device import Device
+from ocsf.objects.dns_query import DnsQuery
+from ocsf.objects.email import Email
+from ocsf.objects.file import File
+from ocsf.objects.http_request import HttpRequest
+from ocsf.objects.http_response import HttpResponse
+from ocsf.objects.ja4_fingerprint import Ja4Fingerprint
+from ocsf.objects.job import Job
+from ocsf.objects.network_connection_info import NetworkConnectionInfo
+from ocsf.objects.network_endpoint import NetworkEndpoint
+from ocsf.objects.process import Process
+from ocsf.objects.resource_details import ResourceDetails
+from ocsf.objects.script import Script
+from ocsf.objects.tls import TLS
+from ocsf.objects.url import Url
+from ocsf.objects.user import User
 
 
-class EvidenceArtifacts(BaseModel):
-    """
-    A collection of evidence artifacts associated to the activity/activities that
-    triggered a security detection.
-    """
+class VerdictId(Enum):
+    UNKNOWN = 0
+    FALSE_POSITIVE = 1
+    TRUE_POSITIVE = 2
+    DISREGARD = 3
+    SUSPICIOUS = 4
+    BENIGN = 5
+    TEST = 6
+    INSUFFICIENT_DATA = 7
+    SECURITY_RISK = 8
+    MANAGED_EXTERNALLY = 9
+    DUPLICATE = 10
+    OTHER = 99
 
-    # Recommended:
-    actor: Actor | None = None # Describes details about the user/role/process that was the source of
-                               # the activity that triggered the detection.
-    api: API | None = None # Describes details about the API call associated to the activity that
-                           # triggered the detection.
-    container: Container | None = None # Describes details about the container associated to the
-                                       # activity that triggered the detection.
-    connection_info: NetworkConnectionInformation | None = None # Describes details about the network
-                                                         # connection associated to the activity that
-                                                         # triggered the detection.
-    database: Database | None = None # Describes details about the database associated to the activity
-                                     # that triggered the detection.
-    databucket: Databucket | None = None # Describes details about the databucket associated to the
-                                         # activity that triggered the detection.
-    dst_endpoint: NetworkEndpoint | None = None # Describes details about the destination of the
-                                                # network activity that triggered the detection.
-    file: File | None = None # Describes details about the file associated to the activity that
-                             # triggered the detection.
-    process: Process | None = None # Describes details about the process associated to the activity
-                                   # that triggered the detection.
-    query: DNSQuery | None = None # Describes details about the DNS query associated to the activity
-                                  # that triggered the detection.
-    src_endpoint: NetworkEndpoint | None = None # Describes details about the source of the network
-                                                # activity that triggered the detection.
+    @classmethod
+    def validate_python(cls, obj: Any):
+        try:
+            obj = int(obj)
+        except ValueError:
+            obj = str(obj).upper()
+            return VerdictId[obj]
+        else:
+            return VerdictId(obj)
 
-    # Optional:
-    data: dict | None = None # Additional evidence data that is not accounted for in the specific
-                             # evidence attributes.` Use only when absolutely necessary.`
+    @enum_property
+    def name(self):
+        name_map = {
+            "UNKNOWN": "Unknown",
+            "FALSE_POSITIVE": "False Positive",
+            "TRUE_POSITIVE": "True Positive",
+            "DISREGARD": "Disregard",
+            "SUSPICIOUS": "Suspicious",
+            "BENIGN": "Benign",
+            "TEST": "Test",
+            "INSUFFICIENT_DATA": "Insufficient Data",
+            "SECURITY_RISK": "Security Risk",
+            "MANAGED_EXTERNALLY": "Managed Externally",
+            "DUPLICATE": "Duplicate",
+            "OTHER": "Other",
+        }
+        return name_map[super().name]
+
+
+class Evidences(Entity):
+    # Recommended
+    actor: Actor | None = None
+    api: API | None = None
+    connection_info: NetworkConnectionInfo | None = None
+    container: Container | None = None
+    database: Database | None = None
+    databucket: Databucket | None = None
+    device: Device | None = None
+    dst_endpoint: NetworkEndpoint | None = None
+    email: Email | None = None
+    file: File | None = None
+    http_request: HttpRequest | None = None
+    http_response: HttpResponse | None = None
+    ja4_fingerprint_list: list[Ja4Fingerprint] | None = None
+    job: Job | None = None
+    process: Process | None = None
+    query: DnsQuery | None = None
+    resources: list[ResourceDetails] | None = None
+    script: Script | None = None
+    src_endpoint: NetworkEndpoint | None = None
+    tls: TLS | None = None
+    url: Url | None = None
+    user: User | None = None
+
+    # Optional
+    data: dict[str, Any] | None = None
+    name: str | None = None
+    uid: str | None = None
+    verdict: str | None = None
+    verdict_id: VerdictId | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(
+            getattr(self, field) is None
+            for field in [
+                "actor",
+                "api",
+                "connection_info",
+                "data",
+                "database",
+                "databucket",
+                "device",
+                "dst_endpoint",
+                "email",
+                "file",
+                "process",
+                "query",
+                "resources",
+                "src_endpoint",
+                "url",
+                "user",
+                "job",
+                "script",
+            ]
+        ):
+            raise ValueError(
+                "At least one of `actor`, `api`, `connection_info`, `data`, `database`, `databucket`, `device`, `dst_endpoint`, `email`, `file`, `process`, `query`, `resources`, `src_endpoint`, `url`, `user`, `job`, `script` must be provided"
+            )
+        return self

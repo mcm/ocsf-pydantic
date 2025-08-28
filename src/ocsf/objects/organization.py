@@ -1,17 +1,11 @@
-from ._entity import Entity
+from ocsf.objects._entity import Entity
 
 
 class Organization(Entity):
-    """
-    The Organization object describes characteristics of an organization or company
-    and its division if any.
-    """
-
-    # Recommended:
+    # Recommended
+    name: str | None = None
     ou_name: str | None = None
+    uid: str | None = None
 
-    # Optional:
-    name: str | None = None # The name of the organization. For example, Widget, Inc.
+    # Optional
     ou_uid: str | None = None
-    uid: str | None = None # The unique identifier of the organization. For example, its Active
-                           # Directory or AWS Org ID.

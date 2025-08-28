@@ -1,12 +1,15 @@
-from pydantic import BaseModel
+from pydantic import model_validator
 
-class Entity(BaseModel):
-    """
-    The Entity object is an unordered collection of attributes, with a name and
-    unique identifier. It serves as a base object that defines a set of attributes
-    and default constraints available in all objects that extend it.
-    """
+from ocsf.objects.object import Object
 
-    # Recommended:
-    name: str | None = None # The name of the entity.
-    uid: str | None = None # The unique identifier of the entity.
+
+class Entity(Object):
+    # Recommended
+    name: str | None = None
+    uid: str | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one(self):
+        if all(getattr(self, field) is None for field in ["name", "uid"]):
+            raise ValueError("At least one of `name`, `uid` must be provided")
+        return self
